@@ -14,7 +14,7 @@
 
   auto ssplayer = ss::Player::create();
   ssplayer->setData("sample");				// ssbpファイル（拡張子不要）をプレイヤーに関連づけます
-  ssplayer->play("anime1");					// アニメーション名指定(ssae名/アニメーション名)
+  ssplayer->play("NewAnimation/anime1");	// アニメーション名指定(ssae名/アニメーション名)
   ssplayer->setPosition(200, 200);			// 位置設定
   ssplayer->setAlpha(255);					// 透明度設定
   ssplayer->setScale(1.0f,1.0f);			// 拡大率設定
@@ -113,13 +113,13 @@ public:
 
 	/**
 	* 指定したセルのテクスチャを変更します.
-	* @param  dataName       ssbp名（拡張子を除くファイル名）
-	* @param  callName       ssce名（拡張子を除くファイル名）
+	* @param  ssbpName       ssbp名（拡張子を除くファイル名）
+	* @param  ssceName       ssce名（拡張子を除くファイル名）
 	* @param  texture        変更後のテクスチャ
     *                        テクスチャはポインタを参照するだけなので、使用する側で実体を管理する必要があります。
 	* @return 変更を行ったか
 	*/
-	bool changeTexture(char* dataName, char* callName, cocos2d::Texture2D* texture);
+	bool changeTexture(char* ssbpName, char* ssceName, cocos2d::Texture2D* texture);
 
 	/**
 	 * 新たなResourceManagerインスタンスを構築します.

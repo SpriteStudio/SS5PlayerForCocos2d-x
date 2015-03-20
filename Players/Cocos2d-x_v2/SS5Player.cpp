@@ -576,12 +576,12 @@ void ResourceManager::removeAllData()
 }
 
 //データ名、セル名を指定して、セルで使用しているテクスチャを変更する
-bool ResourceManager::changeTexture(char* dataName, char* callName, cocos2d::CCTexture2D* texture)
+bool ResourceManager::changeTexture(char* ssbpName, char* ssceName, cocos2d::CCTexture2D* texture)
 {
 	bool rc = false;
 
-	ResourceSet* rs = getData(dataName);
-	rc = rs->cellCache->setCellRefTexture(rs->data, callName, texture);
+	ResourceSet* rs = getData(ssbpName);
+	rc = rs->cellCache->setCellRefTexture(rs->data, ssceName, texture);
 
 	return(rc);
 }
