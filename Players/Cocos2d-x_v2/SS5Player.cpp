@@ -1852,6 +1852,11 @@ void Player::setFrame(int frameNo)
 				color4.r = color4.r * alpha / 255;
 				color4.g = color4.g * alpha / 255;
 				color4.b = color4.b * alpha / 255;
+				// 加算ブレンド
+				if (partData->alphaBlendType == BLEND_ADD)
+				{
+					color4.a = 255;	//加算の場合はアルファの計算を行わない。(カラー値にアルファ分が計算されているため)
+				}
 				sprite->sethasPremultipliedAlpha(1);
 			}
 		}
