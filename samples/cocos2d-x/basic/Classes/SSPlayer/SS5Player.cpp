@@ -182,6 +182,31 @@ public:
 		return( rc );
 	}
 
+	//指定したデータのテクスチャを破棄する
+	bool releseTexture(const ProjectData* data)
+	{
+		bool rc = false;
+
+		ToPointer ptr(data);
+		const Cell* cells = static_cast<const Cell*>(ptr(data->cells));
+		for (int i = 0; i < data->numCells; i++)
+		{
+			const Cell* cell = &cells[i];
+			const CellMap* cellMap = static_cast<const CellMap*>(ptr(cell->cellMap));
+			{
+				CellRef* ref = _refs.at(i);
+				if (ref->texture)
+				{
+					cocos2d::TextureCache* texCache = cocos2d::Director::getInstance()->getTextureCache();
+					texCache->removeTexture(ref->texture);
+					ref->texture = nullptr;
+					rc = true;
+				}
+			}
+		}
+		return(rc);
+	}
+
 
 protected:
 	void init(const ProjectData* data, const std::string& imageBaseDir)
@@ -521,13 +546,30 @@ std::string ResourceManager::addData(const std::string& ssbpFilepath, const std:
 	return addDataWithKey(dataKey, ssbpFilepath, imageBaseDir);
 }
 
-void ResourceManager::removeData(const std::string& dataKey)
+//バイナリデータの解放
+void ResourceManager::removeData(const std::string& ssbpName)
 {
-	_dataDic.erase(dataKey);
+	//テクスチャの解放
+	ResourceSet* rs = getData(ssbpName);
+	bool rc = rs->cellCache->releseTexture(rs->data);
+
+	//バイナリデータの削除
+	_dataDic.erase(ssbpName);
 }
 
 void ResourceManager::removeAllData()
 {
+	cocos2d::Map<std::string, ResourceSet*>::iterator it = _dataDic.begin();
+	while (it != _dataDic.end())
+	{
+		std::string ssbpName = it->first;
+		//テクスチャの解放
+		ResourceSet* rs = getData(ssbpName);
+		bool rc = rs->cellCache->releseTexture(rs->data);
+
+		it++;
+	}
+
 	_dataDic.clear();
 }
 
@@ -1589,49 +1631,57 @@ void Player::setFrame(int frameNo)
 		bool setBlendEnabled = true;
 		if (cellRef)
 		{
-			if (setBlendEnabled)
+			if (cellRef->texture)
 			{
-				// ブレンド方法を設定
-				// 標準状態でMIXブレンド相当になります
-				// BlendFuncの値を変更することでブレンド方法を切り替えます
-				cocos2d::BlendFunc blendFunc = sprite->getBlendFunc();
-
-				if (flags & PART_FLAG_COLOR_BLEND)
+				if (setBlendEnabled)
 				{
-					//カラーブレンドを行うときはカスタムシェーダーを使用する
-					sprite->changeShaderProgram(true);
+					// ブレンド方法を設定
+					// 標準状態でMIXブレンド相当になります
+					// BlendFuncの値を変更することでブレンド方法を切り替えます
+					cocos2d::BlendFunc blendFunc = sprite->getBlendFunc();
 
-					if (!cellRef->texture->hasPremultipliedAlpha())
+					if (flags & PART_FLAG_COLOR_BLEND)
 					{
+						//カラーブレンドを行うときはカスタムシェーダーを使用する
+						sprite->changeShaderProgram(true);
+
+						if (!cellRef->texture->hasPremultipliedAlpha())
+						{
+							blendFunc.src = GL_SRC_ALPHA;
+							blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+						}
+						else
+						{
+							blendFunc.src = CC_BLEND_SRC;
+							blendFunc.dst = CC_BLEND_DST;
+						}
+
+						// カスタムシェーダを使用する場合
 						blendFunc.src = GL_SRC_ALPHA;
-						blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+
+						// 加算ブレンド
+						if (partData->alphaBlendType == BLEND_ADD) {
+							blendFunc.dst = GL_ONE;
+						}
 					}
 					else
 					{
-						blendFunc.src = CC_BLEND_SRC;
-						blendFunc.dst = CC_BLEND_DST;
-					}
-
-					// カスタムシェーダを使用する場合
-					blendFunc.src = GL_SRC_ALPHA;
-
-					// 加算ブレンド
-					if (partData->alphaBlendType == BLEND_ADD) {
-						blendFunc.dst = GL_ONE;
-					}
-				}
-				else
-				{
-					sprite->changeShaderProgram(false);
-					// 通常ブレンド
-					if (partData->alphaBlendType == BLEND_MIX)
-					{
-						if (opacity < 255 )
+						sprite->changeShaderProgram(false);
+						// 通常ブレンド
+						if (partData->alphaBlendType == BLEND_MIX)
 						{
-							if (!cellRef->texture->hasPremultipliedAlpha())
+							if (opacity < 255 )
 							{
-								blendFunc.src = GL_SRC_ALPHA;
-								blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+								if (!cellRef->texture->hasPremultipliedAlpha())
+								{
+									blendFunc.src = GL_SRC_ALPHA;
+									blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+								}
+								else
+								{
+									blendFunc.src = GL_ONE;
+									blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+								}
 							}
 							else
 							{
@@ -1639,46 +1689,46 @@ void Player::setFrame(int frameNo)
 								blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 							}
 						}
-						else
-						{
-							blendFunc.src = GL_ONE;
+						// 加算ブレンド
+						if (partData->alphaBlendType == BLEND_ADD) {
+							blendFunc.src = GL_SRC_ALPHA;
+							blendFunc.dst = GL_ONE;
+						}
+						// 乗算ブレンド
+						if (partData->alphaBlendType == BLEND_MUL) {
+							blendFunc.src = GL_DST_COLOR;
 							blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 						}
+						// 減算ブレンド
+						if (partData->alphaBlendType == BLEND_SUB) {
+							blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+							blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
+						}
+						/*
+						//除外
+						if (partData->alphaBlendType == BLEND_) {
+							blendFunc.src = GL_ONE_MINUS_DST_COLOR;
+							blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
+						}
+						//スクリーン
+						if (partData->alphaBlendType == BLEND_) {
+							blendFunc.src = GL_ONE_MINUS_DST_COLOR;
+							blendFunc.dst = GL_ONE;
+						}
+						*/
 					}
-					// 加算ブレンド
-					if (partData->alphaBlendType == BLEND_ADD) {
-						blendFunc.src = GL_SRC_ALPHA;
-						blendFunc.dst = GL_ONE;
-					}
-					// 乗算ブレンド
-					if (partData->alphaBlendType == BLEND_MUL) {
-						blendFunc.src = GL_DST_COLOR;
-						blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-					}
-					// 減算ブレンド
-					if (partData->alphaBlendType == BLEND_SUB) {
-						blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-						blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
-					}
-					/*
-					//除外
-					if (partData->alphaBlendType == BLEND_) {
-						blendFunc.src = GL_ONE_MINUS_DST_COLOR;
-						blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
-					}
-					//スクリーン
-					if (partData->alphaBlendType == BLEND_) {
-						blendFunc.src = GL_ONE_MINUS_DST_COLOR;
-						blendFunc.dst = GL_ONE;
-					}
-					*/
+
+					sprite->setBlendFunc(blendFunc);
 				}
 
-				sprite->setBlendFunc(blendFunc);
+				sprite->setTexture(cellRef->texture);
+				sprite->setTextureRect(cellRef->rect);
 			}
-
-			sprite->setTexture(cellRef->texture);
-			sprite->setTextureRect(cellRef->rect);
+			else
+			{
+				sprite->setTexture(nullptr);
+				sprite->setTextureRect(cocos2d::Rect());
+			}
 		}
 		else
 		{
@@ -1777,18 +1827,21 @@ void Player::setFrame(int frameNo)
 		sprite->sethasPremultipliedAlpha(0);	//
 		if (cellRef)
 		{
-			if (cellRef->texture->hasPremultipliedAlpha())
+			if (cellRef->texture)
 			{
-				//テクスチャのカラー値にアルファがかかっている場合は、アルファ値をカラー値に反映させる
-				color4.r = color4.r * alpha / 255;
-				color4.g = color4.g * alpha / 255;
-				color4.b = color4.b * alpha / 255;
-				// 加算ブレンド
-				if (partData->alphaBlendType == BLEND_ADD) 
+				if (cellRef->texture->hasPremultipliedAlpha())
 				{
-					color4.a = 255;	//加算の場合はアルファの計算を行わない。(カラー値にアルファ分が計算されているため)
+					//テクスチャのカラー値にアルファがかかっている場合は、アルファ値をカラー値に反映させる
+					color4.r = color4.r * alpha / 255;
+					color4.g = color4.g * alpha / 255;
+					color4.b = color4.b * alpha / 255;
+					// 加算ブレンド
+					if (partData->alphaBlendType == BLEND_ADD) 
+					{
+						color4.a = 255;	//加算の場合はアルファの計算を行わない。(カラー値にアルファ分が計算されているため)
+					}
+					sprite->sethasPremultipliedAlpha(1);
 				}
-				sprite->sethasPremultipliedAlpha(1);
 			}
 		}
 		quad.tl.colors =

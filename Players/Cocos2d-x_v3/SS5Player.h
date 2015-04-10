@@ -99,12 +99,17 @@ public:
 	 *
 	 * @param  dataKey
 	 */
-	void removeData(const std::string& dataKey);
+	void removeData(const std::string& ssbpName);
 
 	/**
 	 * 全てのデータを解放します.
 	 */
 	void removeAllData();
+
+	/**
+	* 指定したssbpで読み込まれたテクスチャを解放します.
+	*/
+	bool releseTexture(char* ssbpName);
 
 	/**
 	* 名前に対応するデータ取得します.

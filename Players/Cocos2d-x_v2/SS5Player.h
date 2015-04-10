@@ -101,7 +101,7 @@ public:
 	 *
 	 * @param  dataKey
 	 */
-	void removeData(const std::string& dataKey);
+	void removeData(const std::string& ssbpName);
 
 	/**
 	 * 全てのデータを解放します.
