@@ -45,6 +45,7 @@ class CellRef;
 class AnimeCache;
 class AnimeRef;
 class ResourceSet;
+class CustomSprite;
 struct ProjectData;
 
 /**
@@ -582,6 +583,7 @@ protected:
 	void checkUserData(int frameNo);
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
+	void update_matrix_ss4(CustomSprite *sprite, CustomSprite *parent, const PartData *partData);
 
 protected:
 	ResourceManager*	_resman;
@@ -608,6 +610,8 @@ protected:
 	float				_InstanceRotY;
 	float				_InstanceRotZ;
 	int					_animefps;
+	bool				_rootPartFunctionAsVer4;		//不透明度・反転・非表示アトリビュートの継承方法をVer.4と同様にする
+	bool				_dontUseMatrixForTransform;		//親子の座標変換にマトリックスを使用しない（Ver4互換）
 
 	
 	UserDataCallback	_userDataCallback;

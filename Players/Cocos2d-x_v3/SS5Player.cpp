@@ -17,6 +17,12 @@ namespace ss
 static const ss_u32 DATA_ID = 0x42505353;
 static const ss_u32 DATA_VERSION = 1;
 
+//プロジェクトフラグ
+enum {
+	HEAD_FLAG_rootPartFunctionAsVer4 = 1 << 0,		//不透明度・反転・非表示アトリビュートの継承方法をVer.4と同様にする
+	HEAD_FLAG_dontUseMatrixForTransform = 1 << 1,	//親子の座標変換にマトリックスを使用しない（Ver4互換）
+};
+
 
 /**
  * utilites
@@ -685,6 +691,9 @@ public:
 	CustomSprite*		_parent;
 	ss::Player*			_ssplayer;
 	float				_liveFrame;
+	cocos2d::Vec3		_temp_position;
+	cocos2d::Vec3		_temp_rotation;
+	cocos2d::Vec2		_temp_scale;
 
 public:
 	CustomSprite();
@@ -804,6 +813,8 @@ Player::Player(void)
 	, _InstanceRotY(0.0f)
 	, _InstanceRotZ(0.0f)
 	, _isContentScaleFactorAuto(false)
+	,_rootPartFunctionAsVer4(false)
+	,_dontUseMatrixForTransform(false)
 
 
 	, _userDataCallback(nullptr)
@@ -960,6 +971,16 @@ void Player::setData(const std::string& dataKey)
 		rs->retain();
 		_currentRs = rs;
 	}
+
+	if ( (rs->data->flags & HEAD_FLAG_rootPartFunctionAsVer4 ) != 0 )
+	{
+		_rootPartFunctionAsVer4 = true;		//不透明度・反転・非表示アトリビュートの継承方法をVer.4と同様にする
+	}
+	if ((rs->data->flags & HEAD_FLAG_dontUseMatrixForTransform) != 0)
+	{
+		_dontUseMatrixForTransform = true;		//親子の座標変換にマトリックスを使用しない（Ver4互換）
+	}
+
 }
 
 void Player::releaseData()
@@ -1026,6 +1047,7 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	_prevDrawFrameNo = -1;
 	_isPlayFirstUserdataChack = true;
 	_animefps = _currentAnimeRef->animationData->fps;
+
 
 	setFrame(_playingFrame);
 }
@@ -1588,6 +1610,8 @@ void Player::setFrame(int frameNo)
 		//全パーツにインスタンスの透明度を加える必要がある
 		opacity = (opacity * _InstanceAlpha) / 255;
 
+		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
+
 		//ステータス保存
 		state.flags = flags;
 		state.cellIndex = cellIndex;
@@ -1617,7 +1641,6 @@ void Player::setFrame(int frameNo)
 		state.instancerotationY = _InstanceRotY;
 		state.instancerotationZ = _InstanceRotZ;
 
-		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
 
 		//表示設定
 		sprite->setVisible(isVisibled);
@@ -2136,58 +2159,131 @@ void Player::setFrame(int frameNo)
 		const PartData* partData = &parts[partIndex];
 		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
 		
-		if (sprite->_isStateChanged)
+		if (_dontUseMatrixForTransform == true)
 		{
+			//Ver.4互換
+			CustomSprite* parent = nullptr;
 			if (partIndex > 0)
 			{
-				CustomSprite* parent = static_cast<CustomSprite*>(_parts.at(partData->parentIndex));
-				mat = parent->_mat;
+				parent = static_cast<CustomSprite*>(_parts.at(partData->parentIndex));
 			}
-			else
+			update_matrix_ss4(sprite, parent, partData);
+		}
+		else
+		{
+			if (sprite->_isStateChanged)
 			{
-				mat = cocos2d::Mat4::IDENTITY;
-				//親がいない場合インスタンスパーツの値を初期値とする
-				cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(sprite->_state.instancerotationX), &t);
+				if (partIndex > 0)
+				{
+					CustomSprite* parent = static_cast<CustomSprite*>(_parts.at(partData->parentIndex));
+					mat = parent->_mat;
+				}
+				else
+				{
+					mat = cocos2d::Mat4::IDENTITY;
+					//親がいない場合インスタンスパーツの値を初期値とする
+					cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(sprite->_state.instancerotationX), &t);
+					mat = mat * t;
+
+					cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(sprite->_state.instancerotationY), &t);
+					mat = mat * t;
+
+	//				cocos2d::Mat4::createRotationZ(CC_DEGREES_TO_RADIANS(-sprite->_state.instancerotationZ), &t);
+	//				mat = mat * t;
+
+					//rootパーツの場合はプレイヤーのフリップをみてスケールを反転する
+					float scaleX = isFlippedX() ? -1.0f : 1.0f;
+					float scaleY = isFlippedY() ? -1.0f : 1.0f;
+
+					cocos2d::Mat4::createScale(scaleX, scaleY, 1.0f, &t);
+					mat = mat * t;
+
+				}
+			
+				cocos2d::Mat4::createTranslation(sprite->_state.x ,sprite->_state.y, 0.0f, &t);
 				mat = mat * t;
 
-				cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(sprite->_state.instancerotationY), &t);
+				cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(sprite->_state.rotationX), &t);
 				mat = mat * t;
 
-//				cocos2d::Mat4::createRotationZ(CC_DEGREES_TO_RADIANS(-sprite->_state.instancerotationZ), &t);
-//				mat = mat * t;
-
-				//rootパーツの場合はプレイヤーのフリップをみてスケールを反転する
-				float scaleX = isFlippedX() ? -1.0f : 1.0f;
-				float scaleY = isFlippedY() ? -1.0f : 1.0f;
-
-				cocos2d::Mat4::createScale(scaleX, scaleY, 1.0f, &t);
+				cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(sprite->_state.rotationY), &t);
 				mat = mat * t;
 
+				cocos2d::Mat4::createRotationZ(CC_DEGREES_TO_RADIANS(-sprite->_state.rotationZ), &t);
+				mat = mat * t;
+
+				cocos2d::Mat4::createScale(sprite->_state.scaleX, sprite->_state.scaleY, 1.0f, &t);
+				mat = mat * t;
+		
+				sprite->_mat = mat;
+
+				// 行列を再計算させる
+				sprite->setAdditionalTransform(nullptr);
+				sprite->_isStateChanged = false;
 			}
-			
-            cocos2d::Mat4::createTranslation(sprite->_state.x ,sprite->_state.y, 0.0f, &t);
-			mat = mat * t;
 
-			cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(sprite->_state.rotationX), &t);
-			mat = mat * t;
-
-			cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(sprite->_state.rotationY), &t);
-			mat = mat * t;
-
-			cocos2d::Mat4::createRotationZ(CC_DEGREES_TO_RADIANS(-sprite->_state.rotationZ), &t);
-			mat = mat * t;
-
-            cocos2d::Mat4::createScale(sprite->_state.scaleX, sprite->_state.scaleY, 1.0f, &t);
-			mat = mat * t;
-			
-			sprite->_mat = mat;
-			sprite->_isStateChanged = false;
-
-			// 行列を再計算させる
-			sprite->setAdditionalTransform(nullptr);
 		}
 	}
 	
+}
+
+void Player::update_matrix_ss4(CustomSprite *sprite, CustomSprite *parent, const PartData *partData)
+{
+
+	//単位行列にする
+	cocos2d::Mat4 t;
+	sprite->_mat = cocos2d::Mat4::IDENTITY;
+
+	if (partData->index == 0)
+	{
+		//rootパーツ
+		sprite->_temp_position = cocos2d::Vec3(0, 0, 0);
+		sprite->_temp_rotation = cocos2d::Vec3(0, 0, 0);
+		sprite->_temp_scale = cocos2d::Vec2(1.0f, 1.0f);
+
+		// 行列を再計算させる
+		sprite->setAdditionalTransform(nullptr);
+		return;
+	}
+
+	float x = sprite->_state.x;
+	float y = sprite->_state.y;
+	float z = sprite->_state.z;
+
+	//scaleを適用
+	x *= parent->_temp_scale.x;
+	y *= parent->_temp_scale.y;
+
+	float temp = 1.0f;
+
+	//回転
+	float angle = -parent->_temp_rotation.z;
+	double aa = CC_DEGREES_TO_RADIANS(angle) * temp;
+	double  asin = std::sin(aa);
+	double  acos = std::cos(aa);
+
+	float rx = (float)(x * acos - y * asin);
+	float ry = (float)(x * asin + y * acos);
+
+	x = rx;
+	y = ry;
+
+	//平行移動
+	sprite->_temp_position.x = parent->_temp_position.x + x;
+	sprite->_temp_position.y = parent->_temp_position.y + y;
+
+
+	//ローカル回転
+	sprite->_temp_rotation.z = sprite->_state.rotationZ + parent->_temp_rotation.z;
+
+	//拡大率
+	sprite->_temp_scale.x = sprite->_state.scaleX * parent->_temp_scale.x;
+	sprite->_temp_scale.y = sprite->_state.scaleY * parent->_temp_scale.y;
+
+	//SS4の状態で上書きする
+	sprite->setPosition(cocos2d::Point(sprite->_temp_position.x, sprite->_temp_position.y));
+	sprite->setRotation(sprite->_temp_rotation.z*temp);
+	sprite->setScale(sprite->_temp_scale.x, sprite->_temp_scale.y);	//スケール設定
 }
 
 //ユーザーデータの取得
