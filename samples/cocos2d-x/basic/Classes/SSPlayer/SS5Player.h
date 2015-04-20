@@ -189,14 +189,14 @@ struct ResluteState
 	float z;						/// SS5アトリビュート：Z座標
 	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
 	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
-	float rotationX;				/// X回転（親子関係計算済）
-	float rotationY;				/// Y回転（親子関係計算済）
-	float rotationZ;				/// Z回転（親子関係計算済）
-	float scaleX;					/// Xスケール（親子関係計算済）
-	float scaleY;					/// Yスケール（親子関係計算済）
+	float rotationX;				/// SS5アトリビュート：X回転
+	float rotationY;				/// SS5アトリビュート：Y回転
+	float rotationZ;				/// SS5アトリビュート：Z回転
+	float scaleX;					/// SS5アトリビュート：Xスケール
+	float scaleY;					/// SS5アトリビュート：Yスケール
 	int opacity;					/// 不透明度（0～255）（親子関係計算済）
 	float size_X;					/// SS5アトリビュート：Xサイズ
-	float size_Y;					/// SS5アトリビュート：Xサイズ
+	float size_Y;					/// SS5アトリビュート：Yサイズ
 	float uv_move_X;				/// SS5アトリビュート：UV X移動
 	float uv_move_Y;				/// SS5アトリビュート：UV Y移動
 	float uv_rotation;				/// SS5アトリビュート：UV 回転

@@ -1412,6 +1412,7 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 				{
 					//必要に応じて取得するパラメータを追加してください。
 					//当たり判定などのパーツに付属するフラグを取得する場合は　partData　のメンバを参照してください。
+					//親から継承したスケールを反映させる場合はxスケールは_mat.m[0]、yスケールは_mat.m[5]をかけて使用してください。
 					CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
 					cocos2d::CCPoint pos = getPosition();			//プレイヤーの位置を取得
 
@@ -1424,14 +1425,14 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					result.z = sprite->_state.z;								// Z座標アトリビュートを取得
 					result.anchorX = sprite->_state.anchorX;					// 原点Xオフセット＋セルに設定された原点オフセットX
 					result.anchorY = sprite->_state.anchorY;					// 原点Yオフセット＋セルに設定された原点オフセットY
-					result.rotationX = sprite->_state.rotationX;				// X回転（親子関係計算済）
-					result.rotationY = sprite->_state.rotationY;				// Y回転（親子関係計算済）
-					result.rotationZ = sprite->_state.rotationZ;				// Z回転（親子関係計算済）
-					result.scaleX = sprite->_state.scaleX;						// Xスケール（親子関係計算済）
-					result.scaleY = sprite->_state.scaleY;						// Yスケール（親子関係計算済）
+					result.rotationX = sprite->_state.rotationX;				// SS5アトリビュート：X回転
+					result.rotationY = sprite->_state.rotationY;				// SS5アトリビュート：Y回転
+					result.rotationZ = sprite->_state.rotationZ;				// SS5アトリビュート：Z回転
+					result.scaleX = sprite->_state.scaleX;						// SS5アトリビュート：Xスケール
+					result.scaleY = sprite->_state.scaleY;						// SS5アトリビュート：Yスケール
 					result.opacity = sprite->_state.opacity;					// 不透明度（0～255）（親子関係計算済）
 					result.size_X = sprite->_state.size_X;						// SS5アトリビュート：Xサイズ
-					result.size_Y = sprite->_state.size_Y;						// SS5アトリビュート：Xサイズ
+					result.size_Y = sprite->_state.size_Y;						// SS5アトリビュート：Yサイズ
 					result.uv_move_X = sprite->_state.uv_move_X;				// SS5アトリビュート：UV X移動
 					result.uv_move_Y = sprite->_state.uv_move_Y;				// SS5アトリビュート：UV Y移動
 					result.uv_rotation = sprite->_state.uv_rotation;			// SS5アトリビュート：UV 回転
