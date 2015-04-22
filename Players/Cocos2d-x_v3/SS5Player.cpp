@@ -804,6 +804,9 @@ Player::Player(void)
 	, _InstanceRotY(0.0f)
 	, _InstanceRotZ(0.0f)
 	, _isContentScaleFactorAuto(false)
+	, _col_r(255)
+	, _col_g(255)
+	, _col_b(255)
 
 
 	, _userDataCallback(nullptr)
@@ -1500,6 +1503,14 @@ bool Player::changeInstanceAnime( std::string partsname, std::string animename )
 	return ( rc );
 }
 
+//アニメーションの色成分を変更します
+void Player::setColor(int r, int g, int b)
+{
+	_col_r = r;
+	_col_g = g;
+	_col_b = b;
+}
+
 
 void Player::setFrame(int frameNo)
 {
@@ -1663,6 +1674,11 @@ void Player::setFrame(int frameNo)
 						// 加算ブレンド
 						if (partData->alphaBlendType == BLEND_ADD) {
 							blendFunc.dst = GL_ONE;
+						}
+						// 減算ブレンド
+						if (partData->alphaBlendType == BLEND_SUB) {
+							blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+							blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
 						}
 					}
 					else
@@ -1833,15 +1849,22 @@ void Player::setFrame(int frameNo)
 				if (cellRef->texture->hasPremultipliedAlpha())
 				{
 					//テクスチャのカラー値にアルファがかかっている場合は、アルファ値をカラー値に反映させる
-					color4.r = color4.r * alpha / 255;
-					color4.g = color4.g * alpha / 255;
-					color4.b = color4.b * alpha / 255;
+					color4.r = color4.r * alpha * _col_r / 255 / 255;
+					color4.g = color4.g * alpha * _col_g / 255 / 255;
+					color4.b = color4.b * alpha * _col_b / 255 / 255;
 					// 加算ブレンド
 					if (partData->alphaBlendType == BLEND_ADD) 
 					{
 						color4.a = 255;	//加算の場合はアルファの計算を行わない。(カラー値にアルファ分が計算されているため)
 					}
 					sprite->sethasPremultipliedAlpha(1);
+				}
+				else
+				{
+					//テクスチャのカラー値を変更する
+					color4.r = color4.r * _col_r / 255;
+					color4.g = color4.g * _col_g / 255;
+					color4.b = color4.b * _col_b / 255;
 				}
 			}
 		}
@@ -2108,6 +2131,8 @@ void Player::setFrame(int frameNo)
 			sprite->_ssplayer->setAlpha(opacity);
 			sprite->_ssplayer->set_InstanceRotation(rotationX, rotationY, rotationZ);
 			sprite->_ssplayer->setContentScaleEneble(_isContentScaleFactorAuto);
+			sprite->_ssplayer->setColor(_col_r, _col_g, _col_b);
+
 
 			//インスタンス用SSPlayerに再生フレームを設定する
 			sprite->_ssplayer->setFrameNo(_time);

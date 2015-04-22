@@ -510,6 +510,17 @@ public:
 	void setAlpha(int alpha);
 
 	/*
+	* アニメの輝度を設定します.
+	* setColor(Color3B)ではなくこちらを使用してください。
+	* 制限としてカラーブレンドが適用されたパーツの色は変更できませんので注意してください。
+	*
+	* @param  r          赤成分(0～255)
+	* @param  g          緑成分(0～255)
+	* @param  b          青成分(0～255)
+	*/
+	void setColor(int r, int g, int b);
+
+	/*
 	* setContentScaleFactorの数値に合わせて内部のUV補正を有効にするか設定します。
 	* マルチ解像度テクスチャ対応を行う際にプレイヤーの画像はそのまま使用する場合は、trueを設定してプレイヤー内UV値を変更してください.
 	* 画像を差し替える場合はaddDataの第二引数でパスを指定し、解像度の違うテクスチャを読み込んでください.
@@ -601,6 +612,9 @@ protected:
 	float				_InstanceRotY;
 	float				_InstanceRotZ;
 	int					_animefps;
+	int					_col_r;
+	int					_col_g;
+	int					_col_b;
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;
