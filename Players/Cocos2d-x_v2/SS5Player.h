@@ -17,7 +17,7 @@
   ssplayer->play("NewAnimation/anime1");	// アニメーション名指定(ssae名/アニメーション名)
   CCPoint pos(200,200);
   ssplayer->setPosition(pos);				// 位置設定
-  ssplayer->setAlpha(128);					// 透明度設定
+  ssplayer->setAlpha(255);					// 透明度設定
   ssplayer->setScaleX(1.0f);				// X拡大率設定
   ssplayer->setScaleY(1.0f);				// Y拡大率設定
   ssplayer->setRotation(0.0f);				// Z回転値設定(度)
@@ -182,8 +182,8 @@ struct ResluteState
 {
 	int flags;						/// このフレームで更新が行われるステータスのフラグ
 	int cellIndex;					/// パーツに割り当てられたセルの番号
-	float x;						/// SS5アトリビュート：X座標
-	float y;						/// SS5アトリビュート：Y座標
+	float x;						/// 画面上での表示位置X
+	float y;						/// 画面上での表示位置Y
 	float z;						/// SS5アトリビュート：Z座標
 	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
 	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
@@ -195,6 +195,8 @@ struct ResluteState
 	int opacity;					/// 不透明度（0～255）（親子関係計算済）
 	float size_X;					/// SS5アトリビュート：Xサイズ
 	float size_Y;					/// SS5アトリビュート：Yサイズ
+	float scaledsize_X;				/// 画面上のXサイズ
+	float scaledsize_Y;				/// 画面上のYサイズ
 	float uv_move_X;				/// SS5アトリビュート：UV X移動
 	float uv_move_Y;				/// SS5アトリビュート：UV Y移動
 	float uv_rotation;				/// SS5アトリビュート：UV 回転
@@ -538,6 +540,14 @@ public:
 
 	/** ユーザーデータなどの通知を受け取る、デリゲートを設定します.
 	 *  Set delegate. receive a notification, such as user data.
+	 *  再生したフレームにユーザーデータが設定されている場合呼び出されます。
+	 *  プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	 *
+	 *  コールバック内でパーツのステータスを取得したい場合は、この時点ではアニメが更新されていないため、
+	 *  getPartStateに data->frameNo でフレーム数を指定して取得してください。
+	 *  ss::ResluteState result;
+	 *  再生しているモーションに含まれるパーツ名「collision」のステータスを取得します。
+	 *  ssplayer->getPartState(result, "collision", data->frameNo);
 	 *
 	 *  @code
 	 *  player->setDelegate((SSPlayerDelegate *)this);
@@ -552,6 +562,13 @@ public:
 	void setDelegate(SSPlayerDelegate* delegate);
     
 	/** 再生終了の通知を受けるコールバックを設定します.
+	 * 再生したアニメーションが終了した段階で呼び出されます。
+	 * プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	 * player->getPlayAnimeName();
+	 * を使用する事で再生しているアニメーション名を取得する事もできます。
+	 *
+	 * ループ回数分再生した後に呼び出される点に注意してください。
+	 * 無限ループで再生している場合はコールバックが発生しません。
 	 *
      *  @code
 	 *  player->setPlayEndCallback(this, ssplayer_playend_selector(MyScene::playEndCallback));

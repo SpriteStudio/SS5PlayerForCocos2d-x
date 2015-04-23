@@ -1417,14 +1417,19 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					//当たり判定などのパーツに付属するフラグを取得する場合は　partData　のメンバを参照してください。
 					//親から継承したスケールを反映させる場合はxスケールは_mat.m[0]、yスケールは_mat.m[5]をかけて使用してください。
 					CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
-					cocos2d::CCPoint pos = getPosition();			//プレイヤーの位置を取得
+
+					//プレイヤーの位置を取得
+					cocos2d::CCPoint pos = getPosition();
+					//プレイヤーのスケール値を取得
+					float scaleX = getScaleX() * sprite->_mat[0];
+					float scaleY = getScaleY() * sprite->_mat[5];
 
 					//パーツアトリビュート
 //					sprite->_state;												//SpriteStudio上のアトリビュートの値は_stateから取得してください
 					result.flags = sprite->_state.flags;						// このフレームで更新が行われるステータスのフラグ
 					result.cellIndex = sprite->_state.cellIndex;				// パーツに割り当てられたセルの番号
-					result.x = sprite->_mat[12] + pos.x;						//画面上のX座標を取得
-					result.y = sprite->_mat[13] + pos.y;						//画面上のY座標を取得
+					result.x = (sprite->_mat[12] * scaleX) + pos.x;				//画面上のX座標を取得
+					result.y = (sprite->_mat[13] * scaleY) + pos.y;				//画面上のY座標を取得
 					result.z = sprite->_state.z;								// Z座標アトリビュートを取得
 					result.anchorX = sprite->_state.anchorX;					// 原点Xオフセット＋セルに設定された原点オフセットX
 					result.anchorY = sprite->_state.anchorY;					// 原点Yオフセット＋セルに設定された原点オフセットY
@@ -1436,6 +1441,8 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					result.opacity = sprite->_state.opacity;					// 不透明度（0～255）（親子関係計算済）
 					result.size_X = sprite->_state.size_X;						// SS5アトリビュート：Xサイズ
 					result.size_Y = sprite->_state.size_Y;						// SS5アトリビュート：Yサイズ
+					result.scaledsize_X = sprite->_state.size_X * scaleX;		/// 画面上のXサイズ（親子関係計算済）
+					result.scaledsize_Y = sprite->_state.size_Y * scaleY;		/// 画面上のYサイズ（親子関係計算済）
 					result.uv_move_X = sprite->_state.uv_move_X;				// SS5アトリビュート：UV X移動
 					result.uv_move_Y = sprite->_state.uv_move_Y;				// SS5アトリビュート：UV Y移動
 					result.uv_rotation = sprite->_state.uv_rotation;			// SS5アトリビュート：UV 回転
