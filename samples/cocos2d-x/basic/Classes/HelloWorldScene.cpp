@@ -100,6 +100,9 @@ bool HelloWorld::init()
 	//ユーザーデータコールバックを設定
 	ssplayer->setUserDataCallback(CC_CALLBACK_2(HelloWorld::userDataCallback, this));
 
+	//アニメーション終了コールバックを設定
+	ssplayer->setPlayEndCallback(CC_CALLBACK_1(HelloWorld::playEndCallback, this));
+
 	//プレイヤーをゲームシーンに追加
 	this->addChild(ssplayer, 10);
 
@@ -159,3 +162,21 @@ void HelloWorld::userDataCallback(ss::Player* player, const ss::UserData* data)
 */	
 
 }
+
+
+//アニメーション終了コールバック
+void HelloWorld::playEndCallback(ss::Player* player)
+{
+	//再生したアニメーションが終了した段階で呼び出されます。
+	//プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	//player->getPlayAnimeName();
+	//を使用する事で再生しているアニメーション名を取得する事もできます。
+	
+	//ループ回数分再生した後に呼び出される点に注意してください。
+	//無限ループで再生している場合はコールバックが発生しません。
+
+}
+
+
+
+

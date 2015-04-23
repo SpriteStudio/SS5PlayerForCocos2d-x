@@ -1,3 +1,3 @@
-cocos2d-xで使用する際のサンプルプログラムです。  
+cocos2d-x ver3.xで使用する際のサンプルプログラムです。  
 ClassesとResourcesフォルダを上書きし、SSPlayerフォルダをプロジェクトに追加してください。  
 

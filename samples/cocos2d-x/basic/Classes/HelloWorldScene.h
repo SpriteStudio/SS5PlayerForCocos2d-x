@@ -22,6 +22,9 @@ public:
 	//ユーザーデータコールバック
 	void userDataCallback(ss::Player* player, const ss::UserData* data);
 
+	//アニメーション終了コールバック
+	void playEndCallback(ss::Player* player);
+
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
 

@@ -804,6 +804,9 @@ Player::Player(void)
 	, _InstanceRotY(0.0f)
 	, _InstanceRotZ(0.0f)
 	, _isContentScaleFactorAuto(false)
+	, _col_r(255)
+	, _col_g(255)
+	, _col_b(255)
 
 
 	, _userDataCallback(nullptr)
@@ -1353,14 +1356,19 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					//当たり判定などのパーツに付属するフラグを取得する場合は　partData　のメンバを参照してください。
 					//親から継承したスケールを反映させる場合はxスケールは_mat.m[0]、yスケールは_mat.m[5]をかけて使用してください。
 					CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
-					cocos2d::Vec2 pos = getPosition();			//プレイヤーの位置を取得
+
+					//プレイヤーの位置を取得
+					cocos2d::Vec2 pos = getPosition();
+					//プレイヤーのスケール値を取得
+					float scaleX = getScaleX() * sprite->_mat.m[0];
+					float scaleY = getScaleY() * sprite->_mat.m[5];
 
 					//パーツアトリビュート
 //					sprite->_state;												//SpriteStudio上のアトリビュートの値は_stateから取得してください
 					result.flags = sprite->_state.flags;						// このフレームで更新が行われるステータスのフラグ
 					result.cellIndex = sprite->_state.cellIndex;				// パーツに割り当てられたセルの番号
-					result.x = sprite->_mat.m[12] + pos.x;						//画面上のX座標を取得
-					result.y = sprite->_mat.m[13] + pos.y;						//画面上のY座標を取得
+					result.x = ( sprite->_mat.m[12] * scaleX ) + pos.x;			//画面上のX座標を取得
+					result.y = ( sprite->_mat.m[13] * scaleY ) + pos.y;			//画面上のY座標を取得
 					result.z = sprite->_state.z;								// Z座標アトリビュートを取得
 					result.anchorX = sprite->_state.anchorX;					// 原点Xオフセット＋セルに設定された原点オフセットX
 					result.anchorY = sprite->_state.anchorY;					// 原点Yオフセット＋セルに設定された原点オフセットY
@@ -1372,6 +1380,8 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					result.opacity = sprite->_state.opacity;					// 不透明度（0～255）（親子関係計算済）
 					result.size_X = sprite->_state.size_X;						// SS5アトリビュート：Xサイズ
 					result.size_Y = sprite->_state.size_Y;						// SS5アトリビュート：Yサイズ
+					result.scaledsize_X = sprite->_state.size_X * scaleX;		/// 画面上のXサイズ（親子関係計算済）
+					result.scaledsize_Y = sprite->_state.size_Y * scaleY;		/// 画面上のYサイズ（親子関係計算済）
 					result.uv_move_X = sprite->_state.uv_move_X;				// SS5アトリビュート：UV X移動
 					result.uv_move_Y = sprite->_state.uv_move_Y;				// SS5アトリビュート：UV Y移動
 					result.uv_rotation = sprite->_state.uv_rotation;			// SS5アトリビュート：UV 回転
@@ -1498,6 +1508,14 @@ bool Player::changeInstanceAnime( std::string partsname, std::string animename )
 	}
 
 	return ( rc );
+}
+
+//アニメーションの色成分を変更します
+void Player::setColor(int r, int g, int b)
+{
+	_col_r = r;
+	_col_g = g;
+	_col_b = b;
 }
 
 
@@ -1663,6 +1681,11 @@ void Player::setFrame(int frameNo)
 						// 加算ブレンド
 						if (partData->alphaBlendType == BLEND_ADD) {
 							blendFunc.dst = GL_ONE;
+						}
+						// 減算ブレンド
+						if (partData->alphaBlendType == BLEND_SUB) {
+							blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+							blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
 						}
 					}
 					else
@@ -1833,15 +1856,22 @@ void Player::setFrame(int frameNo)
 				if (cellRef->texture->hasPremultipliedAlpha())
 				{
 					//テクスチャのカラー値にアルファがかかっている場合は、アルファ値をカラー値に反映させる
-					color4.r = color4.r * alpha / 255;
-					color4.g = color4.g * alpha / 255;
-					color4.b = color4.b * alpha / 255;
+					color4.r = color4.r * alpha * _col_r / 255 / 255;
+					color4.g = color4.g * alpha * _col_g / 255 / 255;
+					color4.b = color4.b * alpha * _col_b / 255 / 255;
 					// 加算ブレンド
 					if (partData->alphaBlendType == BLEND_ADD) 
 					{
 						color4.a = 255;	//加算の場合はアルファの計算を行わない。(カラー値にアルファ分が計算されているため)
 					}
 					sprite->sethasPremultipliedAlpha(1);
+				}
+				else
+				{
+					//テクスチャのカラー値を変更する
+					color4.r = color4.r * _col_r / 255;
+					color4.g = color4.g * _col_g / 255;
+					color4.b = color4.b * _col_b / 255;
 				}
 			}
 		}
@@ -2108,6 +2138,8 @@ void Player::setFrame(int frameNo)
 			sprite->_ssplayer->setAlpha(opacity);
 			sprite->_ssplayer->set_InstanceRotation(rotationX, rotationY, rotationZ);
 			sprite->_ssplayer->setContentScaleEneble(_isContentScaleFactorAuto);
+			sprite->_ssplayer->setColor(_col_r, _col_g, _col_b);
+
 
 			//インスタンス用SSPlayerに再生フレームを設定する
 			sprite->_ssplayer->setFrameNo(_time);

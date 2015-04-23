@@ -184,8 +184,8 @@ struct ResluteState
 {
 	int flags;						/// このフレームで更新が行われるステータスのフラグ
 	int cellIndex;					/// パーツに割り当てられたセルの番号
-	float x;						/// SS5アトリビュート：X座標
-	float y;						/// SS5アトリビュート：Y座標
+	float x;						/// 画面上での表示位置X
+	float y;						/// 画面上での表示位置X
 	float z;						/// SS5アトリビュート：Z座標
 	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
 	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
@@ -197,6 +197,8 @@ struct ResluteState
 	int opacity;					/// 不透明度（0～255）（親子関係計算済）
 	float size_X;					/// SS5アトリビュート：Xサイズ
 	float size_Y;					/// SS5アトリビュート：Yサイズ
+	float scaledsize_X;				/// 画面上のXサイズ
+	float scaledsize_Y;				/// 画面上のYサイズ
 	float uv_move_X;				/// SS5アトリビュート：UV X移動
 	float uv_move_Y;				/// SS5アトリビュート：UV Y移動
 	float uv_rotation;				/// SS5アトリビュート：UV 回転
@@ -512,6 +514,17 @@ public:
 	void setAlpha(int alpha);
 
 	/*
+	* アニメの輝度を設定します.
+	* setColor(Color3B)ではなくこちらを使用してください。
+	* 制限としてカラーブレンドが適用されたパーツの色は変更できませんので注意してください。
+	* 
+	* @param  r          赤成分(0～255)
+	* @param  g          緑成分(0～255)
+	* @param  b          青成分(0～255)
+	*/
+	void setColor(int r, int g, int b );
+
+	/*
 	* setContentScaleFactorの数値に合わせて内部のUV補正を有効にするか設定します。
 	* マルチ解像度テクスチャ対応を行う際にプレイヤーの画像はそのまま使用する場合は、trueを設定してプレイヤー内UV値を変更してください.
 	* 画像を差し替える場合はaddDataの第二引数でパスを指定し、解像度の違うテクスチャを読み込んでください.
@@ -528,9 +541,18 @@ public:
 
 	typedef std::function<void(Player*, const UserData*)> UserDataCallback;
 	typedef std::function<void(Player*)> PlayEndCallback;
+	typedef std::function<void(Player*)> ErrorCallback;
 
 	/** 
 	 * ユーザーデータを受け取るコールバックを設定します.
+	 * 再生したフレームにユーザーデータが設定されている場合呼び出されます。
+	 * プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	 * 
+	 * コールバック内でパーツのステータスを取得したい場合は、この時点ではアニメが更新されていないため、
+	 * getPartStateに data->frameNo でフレーム数を指定して取得してください。
+	 * ss::ResluteState result;
+	 * 再生しているモーションに含まれるパーツ名「collision」のステータスを取得します。
+	 * ssplayer->getPartState(result, "collision", data->frameNo);
 	 *
 	 * @param  callback  ユーザーデータ受け取りコールバック
 	 *
@@ -547,8 +569,16 @@ public:
 
 	/**
 	 * 再生終了時に呼び出されるコールバックを設定します.
+	 * 再生したアニメーションが終了した段階で呼び出されます。
+	 * プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	 * player->getPlayAnimeName();
+	 * を使用する事で再生しているアニメーション名を取得する事もできます。
 	 *
-	 * @param  callback  ユーザーデータ受け取りコールバック
+	 * ループ回数分再生した後に呼び出される点に注意してください。
+	 * 無限ループで再生している場合はコールバックが発生しません。
+	 *
+	 *
+	 * @param  callback  再生終了受け取りコールバック
 	 *
      * @code
 	 * player->setPlayEndCallback(CC_CALLBACK_1(MyScene::playEndCallback, this));
@@ -560,7 +590,6 @@ public:
      * @endcode
 	 */
 	void setPlayEndCallback(const PlayEndCallback& callback);
-
 
 public:
 	Player(void);
@@ -608,11 +637,15 @@ protected:
 	float				_InstanceRotY;
 	float				_InstanceRotZ;
 	int					_animefps;
+	int					_col_r;
+	int					_col_g;
+	int					_col_b;
 
 	
 	UserDataCallback	_userDataCallback;
 	UserData			_userData;
 	PlayEndCallback		_playEndCallback;
+	ErrorCallback		_ErrorCallback;
 
 };
 
