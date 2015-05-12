@@ -162,6 +162,7 @@ struct CellRef
 	const Cell* cell;
 	cocos2d::CCTexture2D* texture;
 	cocos2d::CCRect rect;
+	std::string texname;
 };
 
 
@@ -243,6 +244,35 @@ public:
 		return(rc);
 	}
 
+	//指定したセルマップのテクスチャを取得
+	cocos2d::CCTexture2D* getTexture(const ProjectData* data, const char* cellName)
+	{
+		cocos2d::CCTexture2D* tex = nullptr;
+
+		ToPointer ptr(data);
+		const Cell* cells = static_cast<const Cell*>(ptr(data->cells));
+
+		//名前からインデックスの取得
+		int cellindex = -1;
+		for (int i = 0; i < data->numCells; i++)
+		{
+			const Cell* cell = &cells[i];
+			const CellMap* cellMap = static_cast<const CellMap*>(ptr(cell->cellMap));
+			const char* name = static_cast<const char*>(ptr(cellMap->name));
+			if (strcmp(cellName, name) == 0)
+			{
+				CellRef* ref = _refs.at(i);
+				//テクスチャキャッシュ内を検索する
+				cocos2d::CCTextureCache* texCache = cocos2d::CCTextureCache::sharedTextureCache();
+				tex = texCache->textureForKey(ref->texname.c_str());
+				break;
+			}
+		}
+
+		return (tex);
+	}
+
+
 protected:
 	void init(const ProjectData* data, const std::string& imageBaseDir)
 	{
@@ -250,7 +280,8 @@ protected:
 		
 		_textures.clear();
 		_refs.clear();
-		
+		_texname.clear();
+
 		ToPointer ptr(data);
 		const Cell* cells = static_cast<const Cell*>(ptr(data->cells));
 
@@ -268,6 +299,7 @@ protected:
 			CellRef* ref = new CellRef();
 			ref->cell = cell;
 			ref->texture = _textures.at(cellMap->index);
+			ref->texname = _texname.at(cellMap->index);
 			ref->rect = cocos2d::CCRect(cell->x, cell->y, cell->width, cell->height);
 			_refs.push_back(ref);
 		}
@@ -304,9 +336,11 @@ protected:
 		}
 		CCLOG("load: %s", path.c_str());
 		_textures.push_back(tex);
+		_texname.push_back(path);
 	}
 
 protected:
+	std::vector<std::string>			_texname;
 	std::vector<cocos2d::CCTexture2D*>	_textures;
 	std::vector<CellRef*>				_refs;
 };
@@ -627,6 +661,16 @@ bool ResourceManager::changeTexture(char* ssbpName, char* ssceName, cocos2d::CCT
 	return(rc);
 }
 
+//セルとして読み込んだテクスチャを取得する
+cocos2d::CCTexture2D* ResourceManager::getTexture(char* ssbpName, char* ssceName)
+{
+	cocos2d::CCTexture2D* tex = nullptr;
+
+	ResourceSet* rs = getData(ssbpName);
+	tex = rs->cellCache->getTexture(rs->data, ssceName);
+
+	return(tex);
+}
 
 
 /**

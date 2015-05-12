@@ -127,6 +127,14 @@ public:
 	bool changeTexture(char* ssbpName, char* ssceName, cocos2d::Texture2D* texture);
 
 	/**
+	* セルとして読み込んだテクスチャを取得します.
+	* @param  ssbpName       ssbp名（拡張子を除くファイル名）
+	* @param  ssceName       ssce名（拡張子を除くファイル名）
+	* @return テクスチャのポインタ
+	*/
+	cocos2d::Texture2D* getTexture(char* ssbpName, char* ssceName);
+
+	/**
 	 * 新たなResourceManagerインスタンスを構築します.
 	 *
 	 * @return ResourceManagerインスタンス
@@ -185,7 +193,7 @@ struct ResluteState
 	int flags;						/// このフレームで更新が行われるステータスのフラグ
 	int cellIndex;					/// パーツに割り当てられたセルの番号
 	float x;						/// 画面上での表示位置X
-	float y;						/// 画面上での表示位置X
+	float y;						/// 画面上での表示位置Y
 	float z;						/// SS5アトリビュート：Z座標
 	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
 	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY

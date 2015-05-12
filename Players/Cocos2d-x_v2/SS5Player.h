@@ -124,6 +124,14 @@ public:
 	bool changeTexture(char* ssbpName, char* ssceName, cocos2d::CCTexture2D* texture);
 
 	/**
+	* セルとして読み込んだテクスチャを取得します.
+	* @param  ssbpName       ssbp名（拡張子を除くファイル名）
+	* @param  ssceName       ssce名（拡張子を除くファイル名）
+	* @return テクスチャのポインタ
+	*/
+	cocos2d::CCTexture2D* getTexture(char* ssbpName, char* ssceName);
+
+	/**
 	 * 新たなResourceManagerインスタンスを構築します.
 	 *
 	 * @return ResourceManagerインスタンス
