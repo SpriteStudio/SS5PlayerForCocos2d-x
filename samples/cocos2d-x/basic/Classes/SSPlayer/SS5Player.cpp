@@ -1073,9 +1073,7 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	_isPlayFirstUserdataChack = true;
 	_animefps = _currentAnimeRef->animationData->fps;
 
-	_isPlayInitUpDate = true;
 	setFrame(_playingFrame);
-	_isPlayInitUpDate = false;
 }
 
 void Player::animePause()
@@ -1693,9 +1691,8 @@ void Player::setFrame(int frameNo)
 
 		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : nullptr;
 		bool setBlendEnabled = true;
-		if ( ( cellRef ) && ( _isPlayInitUpDate == false ) )
+		if ( cellRef )
 		{
-			//テクスチャが存在する、かつ初期化用アップデートで無い時はブレンドステートとテクスチャの割り当てを行う
 			if (cellRef->texture)
 			{
 				if (setBlendEnabled)
