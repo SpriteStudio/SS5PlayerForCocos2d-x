@@ -1134,7 +1134,9 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	_isPlayFirstUserdataChack = true;
 	_animefps = _currentAnimeRef->animationData->fps;
 
+	_isPlayInitUpDate = true;
 	setFrame(_playingFrame);
+	_isPlayInitUpDate = false;
 }
 
 void Player::pause()
@@ -2342,6 +2344,12 @@ void Player::setFrame(int frameNo)
 
 
 			sprite->_isStateChanged = false;
+		}
+
+		if (_isPlayInitUpDate == true )
+		{
+			//シーンが切り替わった場合描画されない場合があるので、再生リクエスト時に再描画しておく。
+			sprite->draw();	
 		}
 	}
 
