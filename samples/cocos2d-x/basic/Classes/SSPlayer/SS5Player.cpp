@@ -1695,6 +1695,9 @@ void Player::setFrame(int frameNo)
 		{
 			if (cellRef->texture)
 			{
+				sprite->setTexture(cellRef->texture);
+				sprite->setTextureRect(cellRef->rect);
+
 				if (setBlendEnabled)
 				{
 					// ブレンド方法を設定
@@ -1787,9 +1790,6 @@ void Player::setFrame(int frameNo)
 
 					sprite->setBlendFunc(blendFunc);
 				}
-
-				sprite->setTexture(cellRef->texture);
-				sprite->setTextureRect(cellRef->rect);
 			}
 			else
 			{
