@@ -236,7 +236,7 @@ public:
 				{
 					cocos2d::CCTextureCache* texCache = cocos2d::CCTextureCache::sharedTextureCache();
 					texCache->removeTexture(ref->texture);
-					ref->texture = nullptr;
+					ref->texture = NULL;
 					rc = true;
 				}
 			}
@@ -247,7 +247,7 @@ public:
 	//指定したセルマップのテクスチャを取得
 	cocos2d::CCTexture2D* getTexture(const ProjectData* data, const char* cellName)
 	{
-		cocos2d::CCTexture2D* tex = nullptr;
+		cocos2d::CCTexture2D* tex = NULL;
 
 		ToPointer ptr(data);
 		const Cell* cells = static_cast<const Cell*>(ptr(data->cells));
@@ -664,7 +664,7 @@ bool ResourceManager::changeTexture(char* ssbpName, char* ssceName, cocos2d::CCT
 //セルとして読み込んだテクスチャを取得する
 cocos2d::CCTexture2D* ResourceManager::getTexture(char* ssbpName, char* ssceName)
 {
-	cocos2d::CCTexture2D* tex = nullptr;
+	cocos2d::CCTexture2D* tex = NULL;
 
 	ResourceSet* rs = getData(ssbpName);
 	tex = rs->cellCache->getTexture(rs->data, ssceName);
