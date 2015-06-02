@@ -1560,12 +1560,30 @@ int Player::getLabelToFrame(char* findLabelName)
 	return (rc);
 }
 
-//特定パーツの表示、非表示を設定します
-//パーツ番号はスプライトスタジオのフレームコントロールに配置されたパーツが
-//プライオリティでソートされた後、上に配置された順にソートされて決定されます。
-void Player::setPartVisible(int partNo, bool flg)
+//パーツ名からパーツの表示、非表示を設定します
+void Player::setPartVisible(std::string partsname, bool flg)
 {
-	_partVisible[partNo] = flg;
+	bool rc = false;
+	if (_currentAnimeRef)
+	{
+		ToPointer ptr(_currentRs->data);
+
+		const AnimePackData* packData = _currentAnimeRef->animePackData;
+		const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
+
+		for (int index = 0; index < packData->numParts; index++)
+		{
+			int partIndex = _partIndex[index];
+
+			const PartData* partData = &parts[partIndex];
+			const char* partName = static_cast<const char*>(ptr(partData->name));
+			if (strcmp(partName, partsname.c_str()) == 0)
+			{
+				_partVisible[index] = flg;
+				break;
+			}
+		}
+	}
 }
 
 // setContentScaleFactorの数値に合わせて内部のUV補正を有効にするか設定します。
@@ -1749,6 +1767,11 @@ void Player::setFrame(int frameNo)
 		sprite->setFlippedY(flags & PART_FLAG_FLIP_V);
 
 		//表示設定
+		if ( opacity == 0 )
+		{
+			//不透明度0の時は非表示にする
+			isVisibled = false;
+		}
 		sprite->setVisible(isVisibled);
 		sprite->setState(state);
 		this->reorderChild(sprite, index);

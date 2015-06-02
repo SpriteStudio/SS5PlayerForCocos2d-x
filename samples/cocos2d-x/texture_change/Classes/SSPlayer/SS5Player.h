@@ -511,9 +511,11 @@ public:
 	bool getPartState(ResluteState& result, const char* name, int frameNo = -1);
 
 	/**
-	* パーツの表示、非表示を設定します.
+	* パーツ名からパーツの表示、非表示を設定します.
+	* コリジョン用のパーツや差し替えグラフィック等、SS5上で表示を行うがゲーム中では非表示にする場合に使用します。
+	* SSの非表示アトリビュート設定するわけではないので注意してください。
 	*/
-	void setPartVisible( int partNo, bool flg );
+	void setPartVisible(std::string partsname, bool flg);
 
 	/*
 	* プレイヤーの透明度を設定します(0～255).
