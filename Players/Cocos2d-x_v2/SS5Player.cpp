@@ -626,27 +626,26 @@ std::string ResourceManager::addData(const std::string& ssbpFilepath, const std:
 
 void ResourceManager::removeData(const std::string& ssbpName)
 {
-	//テクスチャの解放
 	ResourceSet* rs = getData(ssbpName);
-	bool rc = rs->cellCache->releseTexture(rs->data);
+	CCAssert(rs != NULL, "Invalid data");
+
+	//テクスチャの解放
+	rs->cellCache->releseTexture(rs->data);
 
 	//バイナリデータの削除
+	delete rs;
 	_dataDic.erase(ssbpName);
 }
 
 void ResourceManager::removeAllData()
 {
-	std::map<std::string, ResourceSet*>::iterator it = _dataDic.begin();
-	while (it != _dataDic.end())
+	//全リソースの解放
+	while (!_dataDic.empty())
 	{
+		std::map<std::string, ResourceSet*>::iterator it = _dataDic.begin();
 		std::string ssbpName = it->first;
-		//テクスチャの解放
-		ResourceSet* rs = getData(ssbpName);
-		bool rc = rs->cellCache->releseTexture(rs->data);
-
-		it++;
+		removeData(ssbpName);
 	}
-
 	_dataDic.clear();
 }
 
