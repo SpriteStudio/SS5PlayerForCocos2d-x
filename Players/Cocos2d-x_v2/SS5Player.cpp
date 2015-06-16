@@ -515,7 +515,12 @@ ResourceManager* ResourceManager::create()
 
 ResourceSet* ResourceManager::getData(const std::string& dataKey)
 {
-	ResourceSet* rs = _dataDic.at(dataKey);
+	ResourceSet* rs = NULL;
+	if (_dataDic.find(dataKey) != _dataDic.end())
+	{
+		rs = _dataDic.at(dataKey);
+	}
+	CCAssert(rs != NULL, "Invalid data");
 	return rs;
 }
 
@@ -591,7 +596,6 @@ std::string ResourceManager::addDataWithKey(const std::string& dataKey, const st
 	
 	// リソースが破棄されるとき一緒にロードしたデータも破棄する
 	ResourceSet* rs = getData(dataKey);
-	CCAssert(rs != NULL, "");
 	rs->isDataAutoRelease = true;
 	
 	return dataKey;
@@ -627,7 +631,6 @@ std::string ResourceManager::addData(const std::string& ssbpFilepath, const std:
 void ResourceManager::removeData(const std::string& ssbpName)
 {
 	ResourceSet* rs = getData(ssbpName);
-	CCAssert(rs != NULL, "Invalid data");
 
 	//テクスチャの解放
 	rs->cellCache->releseTexture(rs->data);
@@ -1174,7 +1177,8 @@ void Player::update(float dt)
 void Player::updateFrame(float dt)
 {
 	if (!_currentAnimeRef) return;
-	
+	if (!_currentRs->data) return;
+
 	bool playEnd = false;
 	bool toNextFrame = _isPlaying && !_isPausing;
 	if (toNextFrame && (_loop == 0 || _loopCount < _loop))
