@@ -146,7 +146,7 @@ public:
 	virtual ~ResourceManager();
 
 protected:
-	cocos2d::Map<std::string, ResourceSet*>	_dataDic;
+	std::map<std::string, ResourceSet*>	_dataDic;
 };
 
 

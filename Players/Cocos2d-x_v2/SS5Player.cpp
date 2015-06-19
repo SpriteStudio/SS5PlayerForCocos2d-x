@@ -505,6 +505,7 @@ ResourceManager::ResourceManager(void)
 
 ResourceManager::~ResourceManager()
 {
+	removeAllData();
 }
 
 ResourceManager* ResourceManager::create()
@@ -1647,6 +1648,7 @@ void Player::setColor(int r, int g, int b)
 void Player::setFrame(int frameNo)
 {
 	if (!_currentAnimeRef) return;
+	if (!_currentRs->data) return;
 
 	bool forceUpdate = false;
 	{

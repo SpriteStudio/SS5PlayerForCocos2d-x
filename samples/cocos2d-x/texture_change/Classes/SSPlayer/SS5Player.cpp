@@ -359,9 +359,11 @@ public:
 	
 	void dump()
 	{
-		for (auto key : _dic.keys())
+		std::map<std::string, AnimeRef*>::iterator it = _dic.begin();
+		while (it != _dic.end())
 		{
-			CCLOG("%s", key.c_str());
+			CCLOG("%s", (*it).second);
+			++it;
 		}
 	}
 
@@ -393,10 +395,10 @@ protected:
 				// packName + animeNameでの登録
 				std::string key = toPackAnimeKey(packName, animeName);
 				CCLOG("anime key: %s", key.c_str());
-				_dic.insert(key, ref);
+				_dic.insert(std::map<std::string, AnimeRef*>::value_type(key, ref));
 
 				// animeNameのみでの登録
-				_dic.insert(animeName, ref);
+				_dic.insert(std::map<std::string, AnimeRef*>::value_type(animeName, ref));
 			}
 		}
 	}
@@ -407,7 +409,7 @@ protected:
 	}
 
 protected:
-	cocos2d::Map<std::string, AnimeRef*>	_dic;
+	std::map<std::string, AnimeRef*>	_dic;
 };
 
 
@@ -426,7 +428,21 @@ struct ResourceSet : public cocos2d::Ref
 
 	virtual ~ResourceSet()
 	{
-		if (isDataAutoRelease) delete data;
+		if (isDataAutoRelease)
+		{
+			delete data;
+			data = NULL;
+		}
+		if (animeCache)
+		{
+			delete animeCache;
+			animeCache = NULL;
+		}
+		if (cellCache)
+		{
+			delete cellCache;
+			cellCache = NULL;
+		}
 	}
 };
 
@@ -454,6 +470,7 @@ ResourceManager::ResourceManager(void)
 
 ResourceManager::~ResourceManager()
 {
+	removeAllData();
 }
 
 ResourceManager* ResourceManager::create()
@@ -468,7 +485,12 @@ ResourceManager* ResourceManager::create()
 
 ResourceSet* ResourceManager::getData(const std::string& dataKey)
 {
-	ResourceSet* rs = _dataDic.at(dataKey);
+	ResourceSet* rs = NULL;
+	if (_dataDic.find(dataKey) != _dataDic.end())
+	{
+		rs = _dataDic.at(dataKey);
+	}
+	CCAssert(rs != NULL, "Invalid data");
 	return rs;
 }
 
@@ -498,8 +520,8 @@ std::string ResourceManager::addData(const std::string& dataKey, const ProjectDa
 	rs->isDataAutoRelease = false;
 	rs->cellCache = cellCache;
 	rs->animeCache = animeCache;
-	_dataDic.insert(dataKey, rs);
-	
+	_dataDic.insert(std::map<std::string, ResourceSet*>::value_type(dataKey, rs));
+
 	return dataKey;
 }
 
@@ -567,7 +589,7 @@ std::string ResourceManager::addData(const std::string& ssbpFilepath, const std:
     }
 	
 	//登録されている名前か判定する
-	cocos2d::Map<std::string, ResourceSet*>::iterator it = _dataDic.find(dataKey);
+	std::map<std::string, ResourceSet*>::iterator it = _dataDic.find(dataKey);
 	if (it != _dataDic.end())
 	{
 		//登録されている場合は処理を行わない
@@ -582,27 +604,25 @@ std::string ResourceManager::addData(const std::string& ssbpFilepath, const std:
 //バイナリデータの解放
 void ResourceManager::removeData(const std::string& ssbpName)
 {
-	//テクスチャの解放
 	ResourceSet* rs = getData(ssbpName);
-	bool rc = rs->cellCache->releseTexture(rs->data);
+
+	//テクスチャの解放
+	rs->cellCache->releseTexture(rs->data);
 
 	//バイナリデータの削除
+	delete rs;
 	_dataDic.erase(ssbpName);
 }
 
 void ResourceManager::removeAllData()
 {
-	cocos2d::Map<std::string, ResourceSet*>::iterator it = _dataDic.begin();
-	while (it != _dataDic.end())
+	//全リソースの解放
+	while (!_dataDic.empty())
 	{
+		std::map<std::string, ResourceSet*>::iterator it = _dataDic.begin();
 		std::string ssbpName = it->first;
-		//テクスチャの解放
-		ResourceSet* rs = getData(ssbpName);
-		bool rc = rs->cellCache->releseTexture(rs->data);
-
-		it++;
+		removeData(ssbpName);
 	}
-
 	_dataDic.clear();
 }
 
@@ -1110,7 +1130,8 @@ void Player::update(float dt)
 void Player::updateFrame(float dt)
 {
 	if (!_currentAnimeRef) return;
-	
+	if (!_currentRs->data) return;
+
 	bool playEnd = false;
 	bool toNextFrame = _isPlaying && !_isPausing;
 	if (toNextFrame && (_loop == 0 || _loopCount < _loop))
@@ -1583,6 +1604,7 @@ void Player::setColor(int r, int g, int b)
 void Player::setFrame(int frameNo)
 {
 	if (!_currentAnimeRef) return;
+	if (!_currentRs->data) return;
 
 	bool forceUpdate = false;
 	{
