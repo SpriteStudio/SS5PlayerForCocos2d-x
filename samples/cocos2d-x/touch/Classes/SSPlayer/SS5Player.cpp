@@ -1727,7 +1727,6 @@ void Player::setFrame(int frameNo)
 			//不透明度0の時は非表示にする
 			isVisibled = false;
 		}
-		sprite->setVisible(isVisibled);
 		sprite->setState(state);
 		sprite->setLocalZOrder(index);
 		
@@ -1840,13 +1839,18 @@ void Player::setFrame(int frameNo)
 			{
 				sprite->setTexture(nullptr);
 				sprite->setTextureRect(cocos2d::Rect());
+				//セルが無い時は非表示にする
+				isVisibled = false;
 			}
 		}
 		else
 		{
 			sprite->setTexture(nullptr);
 			sprite->setTextureRect(cocos2d::Rect());
+			//セルが無い時は非表示にする
+			isVisibled = false;
 		}
+		sprite->setVisible(isVisibled);
 
 		sprite->setAnchorPoint(cocos2d::Point(anchorX , 1.0f - anchorY));	//cocosは下が-なので座標を反転させる
 		sprite->setFlippedX(flags & PART_FLAG_FLIP_H);
