@@ -1671,6 +1671,10 @@ void Player::setFrame(int frameNo)
 	ToPointer ptr(_currentRs->data);
 
 	const AnimePackData* packData = _currentAnimeRef->animePackData;
+	//プレイヤーが再生できるパーツの最大数を超えたアニメーションを再生している。
+	//SS5Player.hに記載されている定数 #define PART_VISIBLE_MAX (xxx) の数値を編集してください。
+	CCAssert(packData->numParts < PART_VISIBLE_MAX, "Change #define PART_VISIBLE_MAX");
+
 	const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
 
 	const AnimationData* animeData = _currentAnimeRef->animationData;

@@ -316,7 +316,9 @@ enum BlendType
 
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)
-#define PART_VISIBLE_MAX (512)
+//プレイヤーで扱えるアニメに含まれるパーツの最大数
+#define PART_VISIBLE_MAX (1024)
+
 /**
  * Player
  */
