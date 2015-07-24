@@ -316,7 +316,9 @@ enum BlendType
 
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)
-#define PART_VISIBLE_MAX (512)
+//プレイヤーで扱えるアニメに含まれるパーツの最大数
+#define PART_VISIBLE_MAX (1024)
+
 /**
  * Player
  */
@@ -548,31 +550,35 @@ public:
 	bool changeInstanceAnime(std::string partsname, std::string animeName);
 
 
-	/** ユーザーデータなどの通知を受け取る、デリゲートを設定します.
-	 *  Set delegate. receive a notification, such as user data.
-	 *  再生したフレームにユーザーデータが設定されている場合呼び出されます。
-	 *  プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	/** ユーザーデータ、再生終了の通知を受け取る、デリゲートを設定します.
+	 * Set delegate. receive a notification, such as user data.
+	 * プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
+	 * コールバック内でアニメーションの再生フレーム変更したい場合は
+	 * 次に行われるゲームのアップデート内でプレイヤーに対してアニメーションの操作をしてください。
 	 *
-	 *  コールバック内でパーツのステータスを取得したい場合は、この時点ではアニメが更新されていないため、
-	 *  getPartStateに data->frameNo でフレーム数を指定して取得してください。
-	 *  ss::ResluteState result;
-	 *  再生しているモーションに含まれるパーツ名「collision」のステータスを取得します。
-	 *  ssplayer->getPartState(result, "collision", data->frameNo);
+	 * 再生したフレームにユーザーデータが設定されている場合にシーンクラスに実装された
+	 * onUserData(ss::Player* player, const ss::UserData* data)
+	 * が呼び出されます。
 	 *
-	 *  @code
-	 *  player->setDelegate((SSPlayerDelegate *)this);
-	 *  --
+	 * コールバック内でパーツのステータスを取得したい場合は、この時点ではアニメが更新されていないため、
+	 * getPartStateに data->frameNo でフレーム数を指定して取得してください。
+	 * //再生しているモーションに含まれるパーツ名「collision」のステータスを取得します。
+	 * ss::ResluteState result;
+	 * ssplayer->getPartState(result, "collision", data->frameNo);
 	 *
-	 *  void MyScene::onUserData(ss::Player* player, const ss::UserData* data)
-	 *  {
-	 *    ...
-	 *  }
-	 *  @endcode
-	 */
-	void setDelegate(SSPlayerDelegate* delegate);
-    
-	/** 再生終了の通知を受けるコールバックを設定します.
-	 * 再生したアニメーションが終了した段階で呼び出されます。
+	 * @code
+	 * player->setDelegate((SSPlayerDelegate *)this);
+	 * --
+	 *
+	 * void MyScene::onUserData(ss::Player* player, const ss::UserData* data)
+	 * {
+	 *   ...
+	 * }
+	 * @endcode
+	 *
+	 * 再生したアニメーションが終了（ループ回数が終了し停止する）とシーンクラスに実装された
+	 * playEndCallback(ss::Player* player)
+	 * が呼び出されます。
 	 * プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
 	 * player->getPlayAnimeName();
 	 * を使用する事で再生しているアニメーション名を取得する事もできます。
@@ -580,19 +586,17 @@ public:
 	 * ループ回数分再生した後に呼び出される点に注意してください。
 	 * 無限ループで再生している場合はコールバックが発生しません。
 	 *
-     *  @code
-	 *  player->setPlayEndCallback(this, ssplayer_playend_selector(MyScene::playEndCallback));
-	 *  --
-	 *  void MyScene::playEndCallback(ss::Player* player)
-	 *  {
-	 *    ...
-	 *  }
-     *  @endcode
+	 * @code
+	 * player->setDelegate((SSPlayerDelegate *)this);
+	 * --
+	 *
+	 * void MyScene::playEndCallback(ss::Player* player)
+	 * {
+	 *   ...
+	 * }
+	 * @endcode
 	 */
-	void setPlayEndCallback(cocos2d::CCObject* target, SEL_PlayEndHandler selector);
-    
-
-
+	void setDelegate(SSPlayerDelegate* delegate);
 
 public:
 	Player(void);
@@ -613,6 +617,7 @@ protected:
 	void checkUserData(int frameNo);
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
+	void checkPlayEndCallback(void);
 
 protected:
 	ResourceManager*	_resman;
@@ -645,8 +650,6 @@ protected:
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;
-    CCObject*			_playEndTarget;
-	SEL_PlayEndHandler	_playEndSelector;
 };
 
 #define ssplayer_playend_selector(_SELECTOR) (ss::Player::SEL_PlayEndHandler)(&_SELECTOR)
@@ -665,6 +668,7 @@ public:
      *  Receive a user data.
      */
 	virtual void onUserData(ss::Player* player, const ss::UserData* data);
+	virtual void playEndCallback(ss::Player* player);
 };
 
 

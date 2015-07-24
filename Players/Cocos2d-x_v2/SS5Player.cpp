@@ -902,8 +902,6 @@ Player::Player(void)
 	, _col_g(255)
 	, _col_b(255)
 	, _delegate(0)
-	, _playEndTarget(NULL)
-	, _playEndSelector(NULL)
 {
 	int i;
 	for (i = 0; i < PART_VISIBLE_MAX; i++)
@@ -1280,10 +1278,7 @@ void Player::updateFrame(float dt)
 		stop();
 	
 		// 再生終了コールバックの呼び出し
-        if (_playEndTarget)
-        {
-            (_playEndTarget->*_playEndSelector)(this);
-        }
+		checkPlayEndCallback();
 	}
 }
 
@@ -1671,6 +1666,10 @@ void Player::setFrame(int frameNo)
 	ToPointer ptr(_currentRs->data);
 
 	const AnimePackData* packData = _currentAnimeRef->animePackData;
+	//プレイヤーが再生できるパーツの最大数を超えたアニメーションを再生している。
+	//SS5Player.hに記載されている定数 #define PART_VISIBLE_MAX (xxx) の数値を編集してください。
+	CCAssert(packData->numParts < PART_VISIBLE_MAX, "Change #define PART_VISIBLE_MAX");
+
 	const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
 
 	const AnimationData* animeData = _currentAnimeRef->animationData;
@@ -2467,14 +2466,13 @@ void Player::checkUserData(int frameNo)
 
 }
     
-void Player::setPlayEndCallback(CCObject* target, SEL_PlayEndHandler selector)
+void Player::checkPlayEndCallback(void)
 {
-    CC_SAFE_RELEASE(_playEndTarget);
-    CC_SAFE_RETAIN(target);
-    _playEndTarget = target;
-    _playEndSelector = selector;
+	if (_delegate)
+	{
+		_delegate->playEndCallback(this);
+	}
 }
-    
 
 #define __PI__	(3.14159265358979323846f)
 #define RadianToDegree(Radian) ((double)Radian * (180.0f / __PI__))
@@ -2514,6 +2512,9 @@ SSPlayerDelegate::~SSPlayerDelegate()
 {}
 
 void SSPlayerDelegate::onUserData(Player* player, const UserData* data)
+{}
+
+void SSPlayerDelegate::playEndCallback(Player* player)
 {}
 
 /**
