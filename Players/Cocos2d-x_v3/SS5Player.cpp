@@ -17,7 +17,6 @@ namespace ss
 static const ss_u32 DATA_ID = 0x42505353;
 static const ss_u32 DATA_VERSION = 1;
 
-
 /**
  * utilites
  */
@@ -866,7 +865,7 @@ Player::Player(void)
 	, _InstanceRotX(0.0f)
 	, _InstanceRotY(0.0f)
 	, _InstanceRotZ(0.0f)
-	, _isContentScaleFactorAuto(false)
+	, _isContentScaleFactorAuto(true)
 	, _col_r(255)
 	, _col_g(255)
 	, _col_b(255)
@@ -1547,6 +1546,7 @@ void Player::setPartVisible( std::string partsname, bool flg)
 }
 
 // setContentScaleFactorの数値に合わせて内部のUV補正を有効にするか設定します。
+// 専用解像度のテクスチャを用意する場合はfalseにしてください。
 void Player::setContentScaleEneble(bool eneble)
 {
 	_isContentScaleFactorAuto = eneble;
@@ -1735,7 +1735,11 @@ void Player::setFrame(int frameNo)
 		sprite->setLocalZOrder(index);
 		
 		sprite->setPosition(cocos2d::Point(x, y));
-		sprite->setRotation(rotationZ);
+//		sprite->setRotation(rotationZ);				// for Cocos2d-x ver 3.6
+		// for Cocos2d-x ver 3.7
+		cocos2d::Vec3 rot(rotationX, rotationY, rotationZ);		
+		sprite->setRotation3D(rot);
+		// --
 
 		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : nullptr;
 		bool setBlendEnabled = true;
@@ -2276,10 +2280,10 @@ void Player::setFrame(int frameNo)
 			{
 				mat = cocos2d::Mat4::IDENTITY;
 				//親がいない場合インスタンスパーツの値を初期値とする
-				cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(sprite->_state.instancerotationX), &t);
+				cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(-sprite->_state.instancerotationX), &t);
 				mat = mat * t;
 
-				cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(sprite->_state.instancerotationY), &t);
+				cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(-sprite->_state.instancerotationY), &t);
 				mat = mat * t;
 
 //				cocos2d::Mat4::createRotationZ(CC_DEGREES_TO_RADIANS(-sprite->_state.instancerotationZ), &t);
@@ -2297,10 +2301,10 @@ void Player::setFrame(int frameNo)
             cocos2d::Mat4::createTranslation(sprite->_state.x ,sprite->_state.y, 0.0f, &t);
 			mat = mat * t;
 
-			cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(sprite->_state.rotationX), &t);
+			cocos2d::Mat4::createRotationX(CC_DEGREES_TO_RADIANS(-sprite->_state.rotationX), &t);
 			mat = mat * t;
 
-			cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(sprite->_state.rotationY), &t);
+			cocos2d::Mat4::createRotationY(CC_DEGREES_TO_RADIANS(-sprite->_state.rotationY), &t);
 			mat = mat * t;
 
 			cocos2d::Mat4::createRotationZ(CC_DEGREES_TO_RADIANS(-sprite->_state.rotationZ), &t);

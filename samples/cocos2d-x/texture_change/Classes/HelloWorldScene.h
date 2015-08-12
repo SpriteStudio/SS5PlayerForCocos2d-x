@@ -34,7 +34,7 @@ private:
 	ss::Player *ssplayer;
 
 	//情報表示用ラベル
-	cocos2d::LabelTTF *label;
+	cocos2d::Label *label;
 
 	//テクスチャ差し替え用ポインタ
 	cocos2d::Texture2D* tex1;

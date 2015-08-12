@@ -33,7 +33,7 @@ private:
 	ss::Player *ssplayer;
 
 	//î•ñ•\¦—pƒ‰ƒxƒ‹
-	cocos2d::LabelTTF *label;
+	cocos2d::Label *label;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

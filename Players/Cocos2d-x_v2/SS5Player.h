@@ -1,14 +1,16 @@
-// 
-//  SS5Player.h
-//
 //-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.0.5
+// SS5Player For Cocos2d-x v1.0.6
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
 //-----------------------------------------------------------
+// 
+//  SS5Player.h
+//
+
 
 /************************************************************
+Cocos2d-X Ver2.2.6に対応しています。
 
 - Quick start
  
