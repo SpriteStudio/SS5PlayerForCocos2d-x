@@ -34,8 +34,6 @@ struct Cell
 	ss_u16		width;
 	ss_u16		height;
 	ss_s16		reserved;
-	float		pivot_X;		//原点補正
-	float		pivot_Y;		//原点補正
 };
 
 
@@ -62,8 +60,8 @@ struct AnimationInitialData
 	ss_s16		positionY;
 	ss_s16		positionZ;
 	ss_u16		opacity;
-	float		pivotX;
-	float		pivotY;
+	float		anchorX;
+	float		anchorY;
 	float		rotationX;
 	float		rotationY;
 	float		rotationZ;

@@ -15,7 +15,7 @@ namespace ss
  */
 
 static const ss_u32 DATA_ID = 0x42505353;
-static const ss_u32 DATA_VERSION = 2;
+static const ss_u32 DATA_VERSION = 1;
 
 
 /**
@@ -686,8 +686,8 @@ struct State
 	float x;						/// SS5アトリビュート：X座標
 	float y;						/// SS5アトリビュート：Y座標
 	float z;						/// SS5アトリビュート：Z座標
-	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
-	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
+	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
+	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
 	float rotationX;				/// X回転（親子関係計算済）
 	float rotationY;				/// Y回転（親子関係計算済）
 	float rotationZ;				/// Z回転（親子関係計算済）
@@ -719,8 +719,8 @@ struct State
 		x = 0.0f;
 		y = 0.0f;
 		z = 0.0f;
-		pivotX = 0.0f;
-		pivotY = 0.0f;
+		anchorX = 0.0f;
+		anchorY = 0.0f;
 		rotationX = 0.0f;
 		rotationY = 0.0f;
 		rotationZ = 0.0f;
@@ -825,8 +825,8 @@ public:
 		setStateValue(_state.x, state.x);
 		setStateValue(_state.y, state.y);
 		setStateValue(_state.z, state.z);
-		setStateValue(_state.pivotX, state.pivotX);
-		setStateValue(_state.pivotY, state.pivotY);
+		setStateValue(_state.anchorX, state.anchorX);
+		setStateValue(_state.anchorY, state.anchorY);
 		setStateValue(_state.rotationX, state.rotationX);
 		setStateValue(_state.rotationY, state.rotationY);
 		setStateValue(_state.rotationZ, state.rotationZ);
@@ -908,7 +908,6 @@ Player::Player(void)
 	{
 		_partVisible[i] = true;
 		_partIndex[i] = -1;
-		_cellChange[i] = -1;
 	}
 
 }
@@ -1475,8 +1474,8 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					result.x = (sprite->_mat[12] * scaleX) + pos.x;				//画面上のX座標を取得
 					result.y = (sprite->_mat[13] * scaleY) + pos.y;				//画面上のY座標を取得
 					result.z = sprite->_state.z;								// Z座標アトリビュートを取得
-					result.pivotX = sprite->_state.pivotX;						// 原点Xオフセット＋セルに設定された原点オフセットX
-					result.pivotY = sprite->_state.pivotY;						// 原点Yオフセット＋セルに設定された原点オフセットY
+					result.anchorX = sprite->_state.anchorX;					// 原点Xオフセット＋セルに設定された原点オフセットX
+					result.anchorY = sprite->_state.anchorY;					// 原点Yオフセット＋セルに設定された原点オフセットY
 					result.rotationX = sprite->_state.rotationX;				// SS5アトリビュート：X回転
 					result.rotationY = sprite->_state.rotationY;				// SS5アトリビュート：Y回転
 					result.rotationZ = sprite->_state.rotationZ;				// SS5アトリビュート：Z回転
@@ -1580,61 +1579,6 @@ void Player::setPartVisible(std::string partsname, bool flg)
 			if (strcmp(partName, partsname.c_str()) == 0)
 			{
 				_partVisible[index] = flg;
-				break;
-			}
-		}
-	}
-}
-
-//パーツに割り当たるセルを変更します
-void Player::setPartCell(std::string partsname, std::string sscename, std::string cellname)
-{
-	bool rc = false;
-	if (_currentAnimeRef)
-	{
-		ToPointer ptr(_currentRs->data);
-
-		int changeCellIndex = -1;
-		if ((sscename != "") && (cellname != ""))
-		{
-			//セルマップIDを取得する
-			//必要あり
-
-
-			const Cell* cells = static_cast<const Cell*>(ptr(_currentRs->data->cells));
-
-			//名前からインデックスの取得
-			int cellindex = -1;
-			for (int i = 0; i < _currentRs->data->numCells; i++)
-			{
-				const Cell* cell = &cells[i];
-				const char* name1 = static_cast<const char*>(ptr(cell->name));
-				const CellMap* cellMap = static_cast<const CellMap*>(ptr(cell->cellMap));
-				const char* name2 = static_cast<const char*>(ptr(cellMap->name));
-				if (strcmp(cellname.c_str(), name1) == 0)
-				{
-					if (strcmp(sscename.c_str(), name2) == 0)
-					{
-						changeCellIndex = i;
-						break;
-					}
-				}
-			}
-		}
-
-		const AnimePackData* packData = _currentAnimeRef->animePackData;
-		const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
-
-		for (int index = 0; index < packData->numParts; index++)
-		{
-			int partIndex = _partIndex[index];
-
-			const PartData* partData = &parts[partIndex];
-			const char* partName = static_cast<const char*>(ptr(partData->name));
-			if (strcmp(partName, partsname.c_str()) == 0)
-			{
-				//セル番号を設定
-				_cellChange[index] = changeCellIndex;	//上書き解除
 				break;
 			}
 		}
@@ -1751,8 +1695,8 @@ void Player::setFrame(int frameNo)
 		float x					= flags & PART_FLAG_POSITION_X ? reader.readS16() : init->positionX;
 		float y					= flags & PART_FLAG_POSITION_Y ? reader.readS16() : init->positionY;
 		float z					= flags & PART_FLAG_POSITION_Z ? reader.readS16() : init->positionZ;
-		float pivotX            = flags & PART_FLAG_PIVOT_X ? reader.readFloat() : init->pivotX;
-		float pivotY            = flags & PART_FLAG_PIVOT_Y ? -reader.readFloat() : -init->pivotY;		//cocosでは上下が逆なので反転する
+		float anchorX			= flags & PART_FLAG_ANCHOR_X ? reader.readFloat() : init->anchorX;
+		float anchorY			= flags & PART_FLAG_ANCHOR_Y ? reader.readFloat() : init->anchorY;
 		float rotationX			= flags & PART_FLAG_ROTATIONX ? -reader.readFloat() : -init->rotationX;	//cocos2dx ver2系では非対応
 		float rotationY			= flags & PART_FLAG_ROTATIONY ? -reader.readFloat() : -init->rotationY;	//cocos2dx ver2系では非対応
 		float rotationZ			= flags & PART_FLAG_ROTATIONZ ? -reader.readFloat() : -init->rotationZ;
@@ -1778,12 +1722,6 @@ void Player::setFrame(int frameNo)
 			isVisibled = false;
 		}
 
-		if (_cellChange[index] != -1)
-		{
-			//ユーザーがセルを上書きした
-			cellIndex = _cellChange[index];
-		}
-
 		//固定少数を少数へ戻す
 		x = x / DOT;
 		y = y / DOT;
@@ -1796,34 +1734,14 @@ void Player::setFrame(int frameNo)
 		//全パーツにインスタンスの透明度を加える必要がある
 		opacity = (opacity * _InstanceAlpha) / 255;
 
-		//セルの原点設定を反映させる
-		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : nullptr;
-		if (cellRef)
-		{
-			float cpx = 0;
-			float cpy = 0;
-
-			cpx = cellRef->cell->pivot_X;
-			if (flipX) cpx = -cpx;	// 水平フリップによって原点を入れ替える
-			cpy = cellRef->cell->pivot_Y;
-			if (flipY) cpy = -cpy;	// 垂直フリップによって原点を入れ替える
-
-			pivotX += cpx;
-			pivotY += cpy;
-
-		}
-		pivotX += 0.5f;
-		pivotY += 0.5f;
-
-
 		//ステータス保存
 		state.flags = flags;
 		state.cellIndex = cellIndex;
 		state.x = x;
 		state.y = y;
 		state.z = z;
-		state.pivotX = pivotX;
-		state.pivotY = pivotY;
+		state.anchorX = anchorX;
+		state.anchorY = anchorY;
 		state.rotationX = rotationX;
 		state.rotationY = rotationY;
 		state.rotationZ = rotationZ;
@@ -1864,6 +1782,7 @@ void Player::setFrame(int frameNo)
 		sprite->setPosition(cocos2d::CCPoint(x, y));
 		sprite->setRotation(rotationZ);
 
+		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : NULL;
 		bool setBlendEnabled = true;
 		if (cellRef)
 		{
@@ -1969,20 +1888,26 @@ void Player::setFrame(int frameNo)
 			{
 				sprite->setTexture(NULL);
 				sprite->setTextureRect(cocos2d::CCRect());
-				//セルが無い時は非表示にする
-				isVisibled = false;
+				//セルが無く通常パーツ、ヌルパーツの時は非表示にする
+				if ((partData->type == PARTTYPE_NORMAL) || (partData->type == PARTTYPE_NULL))
+				{
+					isVisibled = false;
+				}
 			}
 		}
 		else
 		{
 			sprite->setTexture(NULL);
 			sprite->setTextureRect(cocos2d::CCRect());
-			//セルが無い時は非表示にする
-			isVisibled = false;
+			//セルが無く通常パーツ、ヌルパーツの時は非表示にする
+			if ((partData->type == PARTTYPE_NORMAL) || (partData->type == PARTTYPE_NULL))
+			{
+				isVisibled = false;
+			}
 		}
 		sprite->setVisible(isVisibled);
 
-		sprite->setAnchorPoint(cocos2d::CCPoint(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
+		sprite->setAnchorPoint(cocos2d::CCPoint(anchorX , 1.0f - anchorY));	//cocosは下が-なので座標を反転させる
 //		sprite->setFlippedX(flags & PART_FLAG_FLIP_H);
 //		sprite->setFlippedY(flags & PART_FLAG_FLIP_V);
 		sprite->setOpacity(opacity);

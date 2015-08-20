@@ -1,5 +1,5 @@
 //-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.1.0
+// SS5Player For Cocos2d-x v1.0.7
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -201,8 +201,8 @@ struct ResluteState
 	float x;						/// 画面上での表示位置X
 	float y;						/// 画面上での表示位置Y
 	float z;						/// SS5アトリビュート：Z座標
-	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
-	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
+	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
+	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
 	float rotationX;				/// SS5アトリビュート：X回転
 	float rotationY;				/// SS5アトリビュート：Y回転
 	float rotationZ;				/// SS5アトリビュート：Z回転
@@ -241,8 +241,8 @@ enum {
 	PART_FLAG_POSITION_X		= 1 << 4,
 	PART_FLAG_POSITION_Y		= 1 << 5,
 	PART_FLAG_POSITION_Z		= 1 << 6,
-	PART_FLAG_PIVOT_X			= 1 << 7,
-	PART_FLAG_PIVOT_Y           = 1 << 8,
+	PART_FLAG_ANCHOR_X			= 1 << 7,
+	PART_FLAG_ANCHOR_Y			= 1 << 8,
 	PART_FLAG_ROTATIONX			= 1 << 9,
 	PART_FLAG_ROTATIONY			= 1 << 10,
 	PART_FLAG_ROTATIONZ			= 1 << 11,
@@ -514,10 +514,6 @@ public:
 
 	/**
 	* パーツの名から、パーツ情報を取得します.
-	*
-	* @param  result        パーツ情報を受け取るバッファ
-	* @param  name          取得するパーツ名
-	* @param  frameNo       取得するフレーム番号 -1の場合は現在再生しているフレームが適用される
 	*/
 	bool getPartState(ResluteState& result, const char* name, int frameNo = -1);
 
@@ -527,17 +523,6 @@ public:
 	* SSの非表示アトリビュート設定するわけではないので注意してください。
 	*/
 	void setPartVisible(std::string partsname, bool flg);
-
-	/**
-	* パーツ名からパーツに割り当たるセルを変更します.
-	* この関数で設定したパーツは参照セルアチリビュートの影響をうけません。
-	* アニメに設定されたセルに戻す場合は、セル名に""を指定してください。
-	*
-	* @param  partsname         パーツ名
-	* @param  sscename          セルマップ名
-	* @param  cellname          表示させたいセル名
-	*/
-	void setPartCell(std::string partsname, std::string sscename, std::string cellname);
 
 	/*
 	* プレイヤーの透明度を設定します(0～255).
@@ -668,7 +653,6 @@ protected:
 	bool				_isContentScaleFactorAuto;
 	int					_prevDrawFrameNo;
 	bool				_partVisible[PART_VISIBLE_MAX];
-	int					_cellChange[PART_VISIBLE_MAX];
 	int					_partIndex[PART_VISIBLE_MAX];
 	int					_InstanceAlpha;
 	float				_InstanceRotX;
