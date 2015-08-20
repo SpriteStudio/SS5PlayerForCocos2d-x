@@ -1,5 +1,5 @@
 //-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.0.6
+// SS5Player For Cocos2d-x v1.0.7
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
