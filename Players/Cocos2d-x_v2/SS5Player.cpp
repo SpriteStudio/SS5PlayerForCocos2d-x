@@ -1969,16 +1969,22 @@ void Player::setFrame(int frameNo)
 			{
 				sprite->setTexture(NULL);
 				sprite->setTextureRect(cocos2d::CCRect());
-				//セルが無い時は非表示にする
-				isVisibled = false;
+				//セルが無く通常パーツ、ヌルパーツの時は非表示にする
+				if ((partData->type == PARTTYPE_NORMAL) || (partData->type == PARTTYPE_NULL))
+				{
+					isVisibled = false;
+				}
 			}
 		}
 		else
 		{
 			sprite->setTexture(NULL);
 			sprite->setTextureRect(cocos2d::CCRect());
-			//セルが無い時は非表示にする
-			isVisibled = false;
+			//セルが無く通常パーツ、ヌルパーツの時は非表示にする
+			if ((partData->type == PARTTYPE_NORMAL) || (partData->type == PARTTYPE_NULL))
+			{
+				isVisibled = false;
+			}
 		}
 		sprite->setVisible(isVisibled);
 
