@@ -647,6 +647,22 @@ cocos2d::Texture2D* ResourceManager::getTexture(char* ssbpName, char* ssceName)
 	return(tex);
 }
 
+//アニメーションの総フレーム数を取得する
+int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
+{
+	int rc = -1;
+
+	ResourceSet* rs = getData(ssbpName);
+	AnimeRef* animeRef = rs->animeCache->getReference(animeName);
+	if (animeRef == nullptr)
+	{
+		auto msg = cocos2d::StringUtils::format("Not found animation > anime=%s", animeName.c_str());
+		CCASSERT(animeRef != nullptr, msg.c_str());
+	}
+	rc = animeRef->animationData->numFrames;
+
+	return(rc);
+}
 
 
 /**
@@ -869,7 +885,7 @@ Player::Player(void)
 	, _col_r(255)
 	, _col_g(255)
 	, _col_b(255)
-
+	, _instanceOverWrite(false)
 
 	, _userDataCallback(nullptr)
 	, _playEndCallback(nullptr)
@@ -880,7 +896,7 @@ Player::Player(void)
 		_partVisible[i] = true;
 		_partIndex[i] = -1;
 	}
-
+	_instanseParam.clear();
 }
 
 Player::~Player()
@@ -1215,7 +1231,6 @@ void Player::updateFrame(float dt)
 				checkUserData(currentFrameNo);
 			}
 		}
-		
 		_playingFrame = static_cast<float>(currentFrameNo) + nextFrameDecimal;
 	}
 	else
@@ -1553,7 +1568,7 @@ void Player::setContentScaleEneble(bool eneble)
 }
 
 // インスタンスパーツが再生するアニメを変更します。
-bool Player::changeInstanceAnime( std::string partsname, std::string animename )
+bool Player::changeInstanceAnime(std::string partsname, std::string animename, bool overWrite, Instance keyParam)
 {
 	//名前からパーツを取得
 	bool rc = false;
@@ -1580,6 +1595,9 @@ bool Player::changeInstanceAnime( std::string partsname, std::string animename )
 					if (_currentAnimename != animename )
 					{
 						sprite->_ssplayer->play(animename);
+						setInstanceParam(overWrite,keyParam);	//インスタンスパラメータの設定
+						sprite->_ssplayer->animeResume();		//アニメ切り替え時にがたつく問題の対応
+						sprite->_liveFrame = 0;					//独立動作の場合再生位置をリセット
 						rc = true;
 					}
 				}
@@ -1598,6 +1616,20 @@ void Player::setColor(int r, int g, int b)
 	_col_r = r;
 	_col_g = g;
 	_col_b = b;
+}
+
+//インスタンスパラメータを設定します
+void Player::setInstanceParam(bool overWrite, Instance keyParam)
+{
+	_instanceOverWrite = overWrite;		//インスタンス情報を上書きするか？
+	_instanseParam = keyParam;			//インスタンスパラメータ
+
+}
+//インスタンスパラメータを取得します
+void Player::getInstanceParam(bool *overWrite, Instance *keyParam)
+{
+	*overWrite = _instanceOverWrite;		//インスタンス情報を上書きするか？
+	*keyParam = _instanseParam;			//インスタンスパラメータ
 }
 
 
@@ -1847,16 +1879,22 @@ void Player::setFrame(int frameNo)
 			{
 				sprite->setTexture(nullptr);
 				sprite->setTextureRect(cocos2d::Rect());
-				//セルが無い時は非表示にする
-				isVisibled = false;
+				//セルが無く通常パーツ、ヌルパーツの時は非表示にする
+				if ((partData->type == PARTTYPE_NORMAL) || (partData->type == PARTTYPE_NULL))
+				{
+					isVisibled = false;
+				}
 			}
 		}
 		else
 		{
 			sprite->setTexture(nullptr);
 			sprite->setTextureRect(cocos2d::Rect());
-			//セルが無い時は非表示にする
-			isVisibled = false;
+			//セルが無く通常パーツ、ヌルパーツの時は非表示にする
+			if ((partData->type == PARTTYPE_NORMAL) || (partData->type == PARTTYPE_NULL))
+			{
+				isVisibled = false;
+			}
 		}
 		sprite->setVisible(isVisibled);
 
@@ -2081,15 +2119,6 @@ void Player::setFrame(int frameNo)
 			v_height = (quad.bl.texCoords.v - quad.tl.texCoords.v) / 2.0f;
 			v_center = quad.tl.texCoords.v + v_height;
 		}
-		//UV回転
-		if (flags & PART_FLAG_UV_ROTATION)
-		{
-			//頂点位置を回転させる
-			get_uv_rotation(&quad.tl.texCoords.u, &quad.tl.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.tr.texCoords.u, &quad.tr.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.bl.texCoords.u, &quad.bl.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.br.texCoords.u, &quad.br.texCoords.v, u_center, v_center, uv_rotation);
-		}
 
 		//UVスケール
 		if ( flags & PART_FLAG_U_SCALE )
@@ -2107,10 +2136,22 @@ void Player::setFrame(int frameNo)
 			quad.br.texCoords.v = v_center + (v_height * uv_scale_Y * v_code);
 		}
 
+		//UV回転
+		if (flags & PART_FLAG_UV_ROTATION)
+		{
+			//頂点位置を回転させる
+			get_uv_rotation(&quad.tl.texCoords.u, &quad.tl.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.tr.texCoords.u, &quad.tr.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.bl.texCoords.u, &quad.bl.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.br.texCoords.u, &quad.br.texCoords.v, u_center, v_center, uv_rotation);
+		}
 
 		//インスタンスパーツの場合
 		if (partData->type == PARTTYPE_INSTANCE)
 		{
+			bool overWrite;
+			Instance keyParam;
+			getInstanceParam(&overWrite, &keyParam);
 			//描画
 			int refKeyframe = 0;
 			int refStartframe = 0;
@@ -2121,7 +2162,6 @@ void Player::setFrame(int frameNo)
 			bool reverse = false;
 			bool pingpong = false;
 			bool independent = false;
-
 			if (flags & PART_FLAG_INSTANCE_KEYFRAME)
 			{
 				refKeyframe = reader.readS16();
@@ -2166,6 +2206,18 @@ void Player::setFrame(int frameNo)
 					independent = true;
 				}
 			}
+			//インスタンスパラメータを上書きする
+			if (overWrite == true)
+			{
+				refStartframe = keyParam.refStartframe;		//開始フレーム
+				refEndframe = keyParam.refEndframe;			//終了フレーム
+				refSpeed = keyParam.refSpeed;				//再生速度
+				refloopNum = keyParam.refloopNum;			//ループ回数
+				infinity = keyParam.infinity;				//無限ループ
+				reverse = keyParam.reverse;					//逆再選
+				pingpong = keyParam.pingpong;				//往復
+				independent = keyParam.independent;			//独立動作
+			}
 
 			//タイムライン上の時間 （絶対時間）
 			int time = frameNo;
@@ -2174,7 +2226,8 @@ void Player::setFrame(int frameNo)
 			if (independent)
 			{
 				float fdt = cocos2d::Director::getInstance()->getAnimationInterval();
-				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);
+				float delta = fdt / (1.0f / _animefps);						//v1.0.8	独立動作時は親アニメのfpsを使用する
+//				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);	//v1.0.7	独立動作時はソースアニメのfpsを使用する
 
 				sprite->_liveFrame += delta;
 				time = (int)sprite->_liveFrame;
@@ -2191,6 +2244,10 @@ void Player::setFrame(int frameNo)
 
 			//尺が０もしくはマイナス（あり得ない
 			if (inst_scale <= 0) continue;
+			//changeInstanceAnime()でソースアニメの参照を変更した場合に尺が変わるので、超えてしまう場合がある。
+			//最大を超えた場合はメモリ外を参照してしまうのでアサートで止めておく
+			CCASSERT(inst_scale <= sprite->_ssplayer->_currentAnimeRef->animationData->numFrames, "_playingFrame It has more than the length of the InstanceAnimation");
+
 			int	nowloop = (reftime / inst_scale);	//現在までのループ数
 
 			int checkloopnum = refloopNum;

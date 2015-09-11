@@ -1,5 +1,5 @@
 //-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.0.6
+// SS5Player For Cocos2d-x v1.0.8
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -141,6 +141,14 @@ public:
 	cocos2d::Texture2D* getTexture(char* ssbpName, char* ssceName);
 
 	/**
+	* 読み込んでいるssbpからアニメーションの総フレーム数を取得します。
+	* @param  ssbpName       ssbp名（拡張子を除くファイル名）
+	* @param  animeName      ssae/モーション名
+	* @return アニメーションの総フレーム（存在しない場合はアサート）
+	*/
+	int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName);
+
+		/**
 	 * 新たなResourceManagerインスタンスを構築します.
 	 *
 	 * @return ResourceManagerインスタンス
@@ -189,6 +197,29 @@ struct LabelData
 	std::string	str;			// String (zero terminated)
 	int			strSize;		// String size (byte count)
 	int			frameNo;		// Frame no
+};
+
+struct Instance
+{
+	int			refStartframe;		//開始フレーム
+	int			refEndframe;		//終了フレーム
+	float		refSpeed;			//再生速度
+	int			refloopNum;			//ループ回数
+	bool		infinity;			//無限ループ
+	bool		reverse;			//逆再選
+	bool		pingpong;			//往復
+	bool		independent;		//独立動作
+	void clear(void)
+	{
+		refStartframe = 0;			//開始フレーム
+		refEndframe = 1;			//終了フレーム
+		refSpeed = 1;				//再生速度
+		refloopNum = 1;				//ループ回数
+		infinity = false;			//無限ループ
+		reverse = false;			//逆再選
+		pingpong = false;			//往復
+		independent = false;		//独立動作
+	}
 };
 
 /**
@@ -553,8 +584,34 @@ public:
 	* 指定したパーツがインスタンスパーツでない場合、falseを返します.
 	* 再生するアニメの名前は"ssae名/アニメーション名"として再生してください。
 	* 現在再生しているアニメを指定することは入れ子となり無限ループとなるためできません。
+	* 
+	* インスタンスキーを手動で設定する事が出来ます。
+	* アニメーションに合わせて開始フレーム、終了フレーム等のインスタンスアトリビュート情報を設定してください。
+	* 終了フレーム最大値は総フレーム-1になります。
+	* 上書きフラグがfalseの場合、SS上に設定されたインスタンスアトリビュートの設定を使用します。
+	*
+	* @param  partsname			SS上のパーツ名
+	* @param  animeName			参照するアニメ名
+	* @param  overWrite			インスタンスキーの上書きフラグ
+	* @param  keyParam			インスタンスキーのパラメータ
 	*/
-	bool changeInstanceAnime(std::string partsname, std::string animeName);
+	bool changeInstanceAnime(std::string partsname, std::string animeName, bool overWrite, Instance keyParam);
+
+	/*
+	* プレイヤーにインスタンスパラメータを設定します。
+	*
+	* @param  overWrite			インスタンスキーの上書きフラグ
+	* @param  keyParam			インスタンスキーのパラメータ
+	*/
+	void setInstanceParam(bool overWrite, Instance keyParam);
+
+	/*
+	* プレイヤーからインスタンスパラメータを取得します。
+	*
+	* @param  overWrite			インスタンスキーの上書きフラグ
+	* @param  keyParam			インスタンスキーのパラメータ
+	*/
+	void getInstanceParam(bool *overWrite, Instance *keyParam);
 
 	typedef std::function<void(Player*, const UserData*)> UserDataCallback;
 	typedef std::function<void(Player*)> PlayEndCallback;
@@ -662,7 +719,8 @@ protected:
 	int					_col_r;
 	int					_col_g;
 	int					_col_b;
-
+	bool				_instanceOverWrite;		//インスタンス情報を上書きするか？
+	Instance			_instanseParam;			//インスタンスパラメータ
 	
 	UserDataCallback	_userDataCallback;
 	UserData			_userData;
