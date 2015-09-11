@@ -115,6 +115,368 @@ private:
 	const ss_u16*	_dataPtr;
 };
 
+/**
+* EffectBehaviorRef
+*/
+struct EffectBehaviorRef : public cocos2d::Ref
+{
+	SsEffectFunctionType::enum_ type;
+	EffectParticleTurnToDirectionEnabled		turnToDirectionEnabled;
+	EffectParticlePointGravity					pointGravity;
+	EffectParticleElementTransSize				elementTransSize;
+	EffectParticleElementSize					elementSize;
+	EffectParticleElementAlphaFade				elementAlphaFade;
+	EffectParticleElementTransColor				elementTransColor;
+	EffectParticleElementInitColor				elementInitColor;
+	EffectParticleElementTangentialAcceleration	elementTangentialAcceleration;
+	EffectParticleElementTransSpeed				elementTransSpeed;
+	EffectParticleElementRotationTrans			elementRotationTrans;
+	EffectParticleElementRotation				elementRotation;
+	EffectParticleElementPosition				elementPosition;
+	EffectParticleElementGravity				elementGravity;
+	EffectParticleElementDelay					elementDelay;
+	EffectParticleElementRndSeedChange			elementRndSeedChange;
+	EffectParticleElementBasic					elementBasic;
+
+	void Clear(void)
+	{
+		type = SsEffectFunctionType::enum_::Base;
+		memset(&turnToDirectionEnabled, 0, sizeof(turnToDirectionEnabled));
+		memset(&pointGravity, 0, sizeof(pointGravity));
+		memset(&elementTransSize, 0, sizeof(elementTransSize));
+		memset(&elementSize, 0, sizeof(elementSize));
+		memset(&elementAlphaFade, 0, sizeof(elementAlphaFade));
+		memset(&elementTransColor, 0, sizeof(elementTransColor));
+		memset(&elementInitColor, 0, sizeof(elementInitColor));
+		memset(&elementTangentialAcceleration, 0, sizeof(elementTangentialAcceleration));
+		memset(&elementTransSpeed, 0, sizeof(elementTransSpeed));
+		memset(&elementRotationTrans, 0, sizeof(elementRotationTrans));
+		memset(&elementRotation, 0, sizeof(elementRotation));
+		memset(&elementPosition, 0, sizeof(elementPosition));
+		memset(&elementGravity, 0, sizeof(elementGravity));
+		memset(&elementDelay, 0, sizeof(elementDelay));
+		memset(&elementRndSeedChange, 0, sizeof(elementRndSeedChange));
+		memset(&elementBasic, 0, sizeof(elementBasic));
+	}
+};
+
+/**
+* EffectNodeRef
+*/
+struct EffectNodeRef : public cocos2d::Ref
+{
+	const EffectNode* effectNode;
+	cocos2d::Vector<EffectBehaviorRef*>		_behavior;
+};
+
+/**
+ * EffectFileRef
+ */
+struct EffectFileRef : public cocos2d::Ref
+{
+	const EffectFile* effectFile;
+	cocos2d::Vector<EffectNodeRef*>		_node;
+};
+
+/**
+* EffectCache
+*/
+class EffectCache : public cocos2d::Ref
+{
+public:
+	static EffectCache* create(const ProjectData* data, const std::string& imageBaseDir)
+	{
+		EffectCache* obj = new EffectCache();
+		if (obj)
+		{
+			obj->init(data, imageBaseDir);
+			obj->autorelease();
+		}
+		return obj;
+	}
+
+	/**
+	* エフェクトファイル名を指定してEffectRefを得る
+	*/
+	EffectFileRef* getReference(const std::string& name)
+	{
+		EffectFileRef* ref = _dic.at(name);
+		return ref;
+	}
+
+	//エフェクトファイル情報の削除
+	void releseReference( void )
+	{
+		while (!_dic.empty())
+		{
+			std::map<std::string, EffectFileRef*>::iterator it = _dic.begin();
+			EffectFileRef *effectFileRef = it->second;
+			for (int nodeindex = 0; nodeindex < effectFileRef->_node.size(); nodeindex++)
+			{
+				EffectNodeRef* nodeRef = effectFileRef->_node.at(nodeindex);
+				if (nodeRef->_behavior.size() > 0)
+				{
+					nodeRef->_behavior.clear();
+				}
+				effectFileRef->_node.clear();
+			}
+		}
+		_dic.clear();
+	}
+
+	void dump()
+	{
+		std::map<std::string, EffectFileRef*>::iterator it = _dic.begin();
+		while (it != _dic.end())
+		{
+			CCLOG("%s", (*it).second);
+			++it;
+		}
+	}
+protected:
+	void init(const ProjectData* data, const std::string& imageBaseDir)
+	{
+		CCASSERT(data != nullptr, "Invalid data");
+
+		ToPointer ptr(data);
+
+		//ssbpからエフェクトファイル配列を取得
+		const EffectFile* effectFileArray = static_cast<const EffectFile*>(ptr(data->effectFileList));
+
+		for (int listindex = 0; listindex < data->numEffectFileList; listindex++)
+		{
+			//エフェクトファイル配列からエフェクトファイルを取得
+			const EffectFile* effectFile = &effectFileArray[listindex];
+
+			//保持用のエフェクトファイル情報を作成
+			EffectFileRef *effectFileRef = new EffectFileRef();
+			effectFileRef->effectFile = effectFile;	//エフェクトファイルを保存
+			std::string effectFileName = static_cast<const char*>(ptr(effectFile->name));
+
+			//エフェクトファイルからエフェクトノード配列を取得
+			const EffectNode* effectNodeArray = static_cast<const EffectNode*>(ptr(effectFile->effectNode));
+			for (int nodeindex = 0; nodeindex < effectFile->numNodeList; nodeindex++)
+			{
+				//保持用のエフェクトノード情報を作成
+				EffectNodeRef* nodeRef = new EffectNodeRef();
+
+				const EffectNode* effectNode = &effectNodeArray[nodeindex];		//エフェクトノード配列からエフェクトノードを取得
+				nodeRef->effectNode = effectNode;								//エフェクトノード保存
+
+				//エフェクトノードからビヘイビア配列を取得
+				const ss_offset* behaviorArray = static_cast<const ss_offset*>(ptr(effectNode->Behavior));
+				for (int behaviorindex = 0; behaviorindex < effectNode->numBehavior; behaviorindex++)
+				{
+					//ビヘイビア配列からビヘイビアを取得
+					const ss_u16* behavior = static_cast<const ss_u16*>(ptr(behaviorArray[behaviorindex]));
+					DataArrayReader reader(behavior);
+					
+					//保持用のビヘイビア情報を作成
+					EffectBehaviorRef* behaviorRef = new EffectBehaviorRef();
+					behaviorRef->Clear();
+
+					int type = reader.readS32();
+					behaviorRef->type = (SsEffectFunctionType::enum_)type;
+
+					switch (type)
+					{
+						case SsEffectFunctionType::Basic:
+						{
+							//基本情報
+							EffectParticleElementBasic effectParam;
+							effectParam.priority = reader.readU32();			//表示優先度
+							effectParam.maximumParticle = reader.readU32();		//最大パーティクル数
+							effectParam.attimeCreate = reader.readU32();		//一度に作成するパーティクル数
+							effectParam.interval = reader.readU32();			//生成間隔
+							effectParam.lifetime = reader.readU32();			//エミッター生存時間
+							effectParam.speedMinValue = reader.readFloat();		//初速最小
+							effectParam.speedMaxValue = reader.readFloat();		//初速最大
+							effectParam.lifespanMinValue = reader.readU32();	//パーティクル生存時間最小
+							effectParam.lifespanMaxValue = reader.readU32();	//パーティクル生存時間最大
+							effectParam.angle = reader.readFloat();				//射出方向
+							effectParam.angleVariance = reader.readFloat();		//射出方向範囲
+
+							behaviorRef->elementBasic = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::RndSeedChange:
+						{
+							//シード上書き
+							EffectParticleElementRndSeedChange effectParam;
+							effectParam.Seed = reader.readU32();				//上書きするシード値
+
+							behaviorRef->elementRndSeedChange = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::Delay:
+						{
+							//発生：タイミング
+							EffectParticleElementDelay effectParam;
+							effectParam.DelayTime = reader.readU32();			//遅延時間
+
+							behaviorRef->elementDelay = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::Gravity:
+						{
+							//重力を加える
+							EffectParticleElementGravity effectParam;
+							effectParam.Gravity_x = reader.readFloat();			//X方向の重力
+							effectParam.Gravity_y = reader.readFloat();			//Y方向の重力
+
+							behaviorRef->elementGravity = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::Position:
+						{
+							//座標：生成時
+							EffectParticleElementPosition effectParam;
+							effectParam.OffsetXMinValue = reader.readFloat();	//X座標に加算最小
+							effectParam.OffsetXMaxValue = reader.readFloat();	//X座標に加算最大
+							effectParam.OffsetYMinValue = reader.readFloat();	//X座標に加算最小
+							effectParam.OffsetYMaxValue = reader.readFloat();	//X座標に加算最大
+
+							behaviorRef->elementPosition = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::Rotation:
+						{
+							//Z回転を追加
+							EffectParticleElementRotation effectParam;
+							effectParam.RotationMinValue = reader.readFloat();		//角度初期値最小
+							effectParam.RotationMaxValue = reader.readFloat();		//角度初期値最大
+							effectParam.RotationAddMinValue = reader.readFloat();	//角度初期加算値最小
+							effectParam.RotationAddMaxValue = reader.readFloat();	//角度初期加算値最大
+
+							behaviorRef->elementRotation = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::TransRotation:
+						{
+							//Z回転速度変更
+							EffectParticleElementRotationTrans effectParam;
+							effectParam.RotationFactor = reader.readFloat();		//角度目標加算値
+							effectParam.EndLifeTimePer = reader.readFloat();		//到達時間
+
+							behaviorRef->elementRotationTrans = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::TransSpeed:
+						{
+							//速度：変化
+							EffectParticleElementTransSpeed effectParam;
+							effectParam.SpeedMinValue = reader.readFloat();			//速度目標値最小
+							effectParam.SpeedMaxValue = reader.readFloat();			//速度目標値最大
+
+							behaviorRef->elementTransSpeed = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::TangentialAcceleration:
+						{
+							//接線加速度
+							EffectParticleElementTangentialAcceleration effectParam;
+							effectParam.AccelerationMinValue = reader.readFloat();	//設定加速度最小
+							effectParam.AccelerationMaxValue = reader.readFloat();	//設定加速度最大
+
+							behaviorRef->elementTangentialAcceleration = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::InitColor:
+						{
+							//カラーRGBA：生成時
+							EffectParticleElementInitColor effectParam;
+							effectParam.ColorMinValue = reader.readU32();			//設定カラー最小
+							effectParam.ColorMaxValue = reader.readU32();			//設定カラー最大
+
+							behaviorRef->elementInitColor = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::TransColor:
+						{
+							//カラーRGB：変化
+							EffectParticleElementTransColor effectParam;
+							effectParam.ColorMinValue = reader.readU32();			//設定カラー最小
+							effectParam.ColorMaxValue = reader.readU32();			//設定カラー最大
+
+							behaviorRef->elementTransColor = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::AlphaFade:
+						{
+							//フェード
+							EffectParticleElementAlphaFade effectParam;
+							effectParam.disprangeMinValue = reader.readU32();		//表示区間開始
+							effectParam.disprangeMaxValue = reader.readU32();		//表示区間終了
+
+							behaviorRef->elementAlphaFade = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::Size:
+						{
+							//スケール：生成時
+							EffectParticleElementSize effectParam;
+							effectParam.SizeXMinValue = reader.readU32();			//幅倍率最小
+							effectParam.SizeXMaxValue = reader.readU32();			//幅倍率最大
+							effectParam.SizeYMinValue = reader.readU32();			//高さ倍率最小
+							effectParam.SizeYMaxValue = reader.readU32();			//高さ倍率最大
+							effectParam.ScaleFactorMinValue = reader.readU32();		//倍率最小
+							effectParam.ScaleFactorMaxValue = reader.readU32();		//倍率最大
+
+							behaviorRef->elementSize = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::TransSize:
+						{
+							//スケール：変化
+							EffectParticleElementTransSize effectParam;
+							effectParam.SizeXMinValue = reader.readU32();			//幅倍率最小
+							effectParam.SizeXMaxValue = reader.readU32();			//幅倍率最大
+							effectParam.SizeYMinValue = reader.readU32();			//高さ倍率最小
+							effectParam.SizeYMaxValue = reader.readU32();			//高さ倍率最大
+							effectParam.ScaleFactorMinValue = reader.readU32();		//倍率最小
+							effectParam.ScaleFactorMaxValue = reader.readU32();		//倍率最大
+
+							behaviorRef->elementTransSize = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::PointGravity:
+						{
+							//重力点の追加
+							EffectParticlePointGravity effectParam;
+							effectParam.Position_x = reader.readU32();				//重力点X
+							effectParam.Position_y = reader.readU32();				//重力点Y
+							effectParam.Power = reader.readU32();					//パワー
+
+							behaviorRef->pointGravity = effectParam;
+							break;
+						}
+						case SsEffectFunctionType::TurnToDirectionEnabled:
+						{
+							//進行方向に向ける
+							EffectParticleTurnToDirectionEnabled effectParam;
+							effectParam.flag = reader.readS32();					//フラグ
+
+							behaviorRef->turnToDirectionEnabled = effectParam;
+							break;
+						}
+						default:
+							break;
+					}
+					//ビヘイビアをノードに登録
+					nodeRef->_behavior.pushBack(behaviorRef);
+
+				}
+				//ファイルにノードを登録
+				effectFileRef->_node.pushBack(nodeRef);
+
+			}
+			CCLOG("effect key: %s", effectFileName.c_str());
+			_dic.insert(std::map<std::string, EffectFileRef*>::value_type(effectFileName, effectFileRef));
+		}
+	}
+protected:
+	std::map<std::string, EffectFileRef*>		_dic;
+};
 
 /**
  * CellRef
@@ -255,7 +617,7 @@ protected:
 			if (cellMap->index >= _textures.size())
 			{
 				const char* imagePath = static_cast<const char*>(ptr(cellMap->imagePath));
-				addTexture(imagePath, imageBaseDir);
+				addTexture(imagePath, imageBaseDir, (SsTexWrapMode::_enum)cellMap->wrapmode, (SsTexFilterMode::_enum)cellMap->filtermode);
 			}
 			
 			CellRef* ref = new CellRef();
@@ -267,7 +629,7 @@ protected:
 		}
 	}
 
-	void addTexture(const std::string& imagePath, const std::string& imageBaseDir)
+	void addTexture(const std::string& imagePath, const std::string& imageBaseDir, SsTexWrapMode::_enum  wrapmode, SsTexFilterMode::_enum filtermode)
 	{
 		std::string path = "";
 		
@@ -290,6 +652,36 @@ protected:
 		
 		cocos2d::TextureCache* texCache = cocos2d::Director::getInstance()->getTextureCache();
 		cocos2d::Texture2D* tex = texCache->addImage(path);
+
+		cocos2d::Texture2D::TexParams texParams;
+		switch (wrapmode)
+		{
+		case SsTexWrapMode::clamp:	//クランプ
+			texParams.wrapS = GL_CLAMP_TO_EDGE;
+			texParams.wrapT = GL_CLAMP_TO_EDGE;
+			break;
+		case SsTexWrapMode::repeat:	//リピート
+			texParams.wrapS = GL_REPEAT;
+			texParams.wrapT = GL_REPEAT;
+			break;
+		case SsTexWrapMode::mirror:	//ミラー
+			texParams.wrapS = GL_MIRRORED_REPEAT;
+			texParams.wrapT = GL_MIRRORED_REPEAT;
+			break;
+		}
+		switch (filtermode)
+		{
+		case SsTexFilterMode::nearlest:	//ニアレストネイバー
+			texParams.minFilter = GL_NEAREST;
+			texParams.magFilter = GL_NEAREST;
+			break;
+		case SsTexFilterMode::linear:	//リニア、バイリニア
+			texParams.minFilter = GL_LINEAR;
+			texParams.magFilter = GL_LINEAR;
+			break;
+		}
+		tex->setTexParameters(texParams);
+
 		if (tex == nullptr)
 		{
 			std::string msg = "Can't load image > " + path;
@@ -422,6 +814,7 @@ struct ResourceSet : public cocos2d::Ref
 {
 	const ProjectData* data;
 	bool isDataAutoRelease;
+	EffectCache* effectCache;
 	CellCache* cellCache;
 	AnimeCache* animeCache;
 
@@ -441,6 +834,11 @@ struct ResourceSet : public cocos2d::Ref
 		{
 			delete cellCache;
 			cellCache = NULL;
+		}
+		if (effectCache)
+		{
+			delete effectCache;
+			effectCache = NULL;
 		}
 	}
 };
@@ -508,6 +906,9 @@ std::string ResourceManager::addData(const std::string& dataKey, const ProjectDa
 		baseDir = dir;
 	}
 
+	EffectCache* effectCache = EffectCache::create(data, baseDir);
+	effectCache->retain();
+
 	CellCache* cellCache = CellCache::create(data, baseDir);
 	cellCache->retain();
 	
@@ -518,6 +919,7 @@ std::string ResourceManager::addData(const std::string& dataKey, const ProjectDa
 	rs->data = data;
 	rs->isDataAutoRelease = false;
 	rs->cellCache = cellCache;
+	rs->effectCache = effectCache;
 	rs->animeCache = animeCache;
 	_dataDic.insert(std::map<std::string, ResourceSet*>::value_type(dataKey, rs));
 
@@ -647,6 +1049,22 @@ cocos2d::Texture2D* ResourceManager::getTexture(char* ssbpName, char* ssceName)
 	return(tex);
 }
 
+//アニメーションの総フレーム数を取得する
+int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
+{
+	int rc = -1;
+
+	ResourceSet* rs = getData(ssbpName);
+	AnimeRef* animeRef = rs->animeCache->getReference(animeName);
+	if (animeRef == nullptr)
+	{
+		auto msg = cocos2d::StringUtils::format("Not found animation > anime=%s", animeName.c_str());
+		CCASSERT(animeRef != nullptr, msg.c_str());
+	}
+	rc = animeRef->animationData->numFrames;
+
+	return(rc);
+}
 
 
 /**
@@ -869,7 +1287,7 @@ Player::Player(void)
 	, _col_r(255)
 	, _col_g(255)
 	, _col_b(255)
-
+	, _instanceOverWrite(false)
 
 	, _userDataCallback(nullptr)
 	, _playEndCallback(nullptr)
@@ -881,7 +1299,7 @@ Player::Player(void)
 		_partIndex[i] = -1;
 		_cellChange[i] = -1;
 	}
-
+	_instanseParam.clear();
 }
 
 Player::~Player()
@@ -1609,7 +2027,7 @@ void Player::setContentScaleEneble(bool eneble)
 }
 
 // インスタンスパーツが再生するアニメを変更します。
-bool Player::changeInstanceAnime( std::string partsname, std::string animename )
+bool Player::changeInstanceAnime(std::string partsname, std::string animename, bool overWrite, Instance keyParam)
 {
 	//名前からパーツを取得
 	bool rc = false;
@@ -1636,6 +2054,9 @@ bool Player::changeInstanceAnime( std::string partsname, std::string animename )
 					if (_currentAnimename != animename )
 					{
 						sprite->_ssplayer->play(animename);
+						setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
+						sprite->_ssplayer->animeResume();		//アニメ切り替え時にがたつく問題の対応
+						sprite->_liveFrame = 0;					//独立動作の場合再生位置をリセット
 						rc = true;
 					}
 				}
@@ -1647,6 +2068,21 @@ bool Player::changeInstanceAnime( std::string partsname, std::string animename )
 
 	return ( rc );
 }
+
+//インスタンスパラメータを設定します
+void Player::setInstanceParam(bool overWrite, Instance keyParam)
+{
+	_instanceOverWrite = overWrite;		//インスタンス情報を上書きするか？
+	_instanseParam = keyParam;			//インスタンスパラメータ
+
+}
+//インスタンスパラメータを取得します
+void Player::getInstanceParam(bool *overWrite, Instance *keyParam)
+{
+	*overWrite = _instanceOverWrite;		//インスタンス情報を上書きするか？
+	*keyParam = _instanseParam;			//インスタンスパラメータ
+}
+
 
 //アニメーションの色成分を変更します
 void Player::setColor(int r, int g, int b)
@@ -2122,12 +2558,14 @@ void Player::setFrame(int frameNo)
 			}
 		}
 		//uvスクロール
+		if (flags & PART_FLAG_U_MOVE)
 		{
 			quad.tl.texCoords.u += uv_move_X;
 			quad.tr.texCoords.u += uv_move_X;
 			quad.bl.texCoords.u += uv_move_X;
 			quad.br.texCoords.u += uv_move_X;
 		}
+		if (flags & PART_FLAG_V_MOVE)
 		{
 			quad.tl.texCoords.v += uv_move_Y;
 			quad.tr.texCoords.v += uv_move_Y;
@@ -2167,15 +2605,6 @@ void Player::setFrame(int frameNo)
 			v_height = (quad.bl.texCoords.v - quad.tl.texCoords.v) / 2.0f;
 			v_center = quad.tl.texCoords.v + v_height;
 		}
-		//UV回転
-		if (flags & PART_FLAG_UV_ROTATION)
-		{
-			//頂点位置を回転させる
-			get_uv_rotation(&quad.tl.texCoords.u, &quad.tl.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.tr.texCoords.u, &quad.tr.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.bl.texCoords.u, &quad.bl.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.br.texCoords.u, &quad.br.texCoords.v, u_center, v_center, uv_rotation);
-		}
 
 		//UVスケール
 		if ( flags & PART_FLAG_U_SCALE )
@@ -2192,11 +2621,23 @@ void Player::setFrame(int frameNo)
 			quad.bl.texCoords.v = v_center + (v_height * uv_scale_Y * v_code);
 			quad.br.texCoords.v = v_center + (v_height * uv_scale_Y * v_code);
 		}
+		//UV回転
+		if (flags & PART_FLAG_UV_ROTATION)
+		{
+			//頂点位置を回転させる
+			get_uv_rotation(&quad.tl.texCoords.u, &quad.tl.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.tr.texCoords.u, &quad.tr.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.bl.texCoords.u, &quad.bl.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.br.texCoords.u, &quad.br.texCoords.v, u_center, v_center, uv_rotation);
+		}
 
 
 		//インスタンスパーツの場合
 		if (partData->type == PARTTYPE_INSTANCE)
 		{
+			bool overWrite;
+			Instance keyParam;
+			getInstanceParam(&overWrite, &keyParam);
 			//描画
 			int refKeyframe = 0;
 			int refStartframe = 0;
@@ -2252,6 +2693,18 @@ void Player::setFrame(int frameNo)
 					independent = true;
 				}
 			}
+			//インスタンスパラメータを上書きする
+			if (overWrite == true)
+			{
+				refStartframe = keyParam.refStartframe;		//開始フレーム
+				refEndframe = keyParam.refEndframe;			//終了フレーム
+				refSpeed = keyParam.refSpeed;				//再生速度
+				refloopNum = keyParam.refloopNum;			//ループ回数
+				infinity = keyParam.infinity;				//無限ループ
+				reverse = keyParam.reverse;					//逆再選
+				pingpong = keyParam.pingpong;				//往復
+				independent = keyParam.independent;			//独立動作
+			}
 
 			//タイムライン上の時間 （絶対時間）
 			int time = frameNo;
@@ -2260,7 +2713,8 @@ void Player::setFrame(int frameNo)
 			if (independent)
 			{
 				float fdt = cocos2d::Director::getInstance()->getAnimationInterval();
-				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);
+				float delta = fdt / (1.0f / _animefps);						//v1.0.8	独立動作時は親アニメのfpsを使用する
+//				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);	//v1.0.7	独立動作時はソースアニメのfpsを使用する
 
 				sprite->_liveFrame += delta;
 				time = (int)sprite->_liveFrame;
@@ -2277,6 +2731,10 @@ void Player::setFrame(int frameNo)
 
 			//尺が０もしくはマイナス（あり得ない
 			if (inst_scale <= 0) continue;
+			//changeInstanceAnime()でソースアニメの参照を変更した場合に尺が変わるので、超えてしまう場合がある。
+			//最大を超えた場合はメモリ外を参照してしまうのでアサートで止めておく
+			CCASSERT(inst_scale <= sprite->_ssplayer->_currentAnimeRef->animationData->numFrames, "_playingFrame It has more than the length of the InstanceAnimation");
+
 			int	nowloop = (reftime / inst_scale);	//現在までのループ数
 
 			int checkloopnum = refloopNum;
