@@ -1,5 +1,5 @@
 //-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.1.0
+// SS5Player For Cocos2d-x v1.0.8
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -139,6 +139,14 @@ public:
 	cocos2d::CCTexture2D* getTexture(char* ssbpName, char* ssceName);
 
 	/**
+	* 読み込んでいるssbpからアニメーションの総フレーム数を取得します。
+	* @param  ssbpName       ssbp名（拡張子を除くファイル名）
+	* @param  animeName      ssae/モーション名
+	* @return アニメーションの総フレーム（存在しない場合はアサート）
+	*/
+	int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName);
+
+	/**
 	 * 新たなResourceManagerインスタンスを構築します.
 	 *
 	 * @return ResourceManagerインスタンス
@@ -190,6 +198,29 @@ struct LabelData
 	int			frameNo;		// Frame no
 };
 
+struct Instance
+{
+	int			refStartframe;		//開始フレーム
+	int			refEndframe;		//終了フレーム
+	float		refSpeed;			//再生速度
+	int			refloopNum;			//ループ回数
+	bool		infinity;			//無限ループ
+	bool		reverse;			//逆再選
+	bool		pingpong;			//往復
+	bool		independent;		//独立動作
+	void clear(void)
+	{
+		refStartframe = 0;			//開始フレーム
+		refEndframe = 1;			//終了フレーム
+		refSpeed = 1;				//再生速度
+		refloopNum = 1;				//ループ回数
+		infinity = false;			//無限ループ
+		reverse = false;			//逆再選
+		pingpong = false;			//往復
+		independent = false;		//独立動作
+	}
+};
+
 /**
 * ResluteState
 */
@@ -200,8 +231,8 @@ struct ResluteState
 	float x;						/// 画面上での表示位置X
 	float y;						/// 画面上での表示位置Y
 	float z;						/// SS5アトリビュート：Z座標
-	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
-	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
+	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
+	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
 	float rotationX;				/// SS5アトリビュート：X回転
 	float rotationY;				/// SS5アトリビュート：Y回転
 	float rotationZ;				/// SS5アトリビュート：Z回転
@@ -240,8 +271,8 @@ enum {
 	PART_FLAG_POSITION_X		= 1 << 4,
 	PART_FLAG_POSITION_Y		= 1 << 5,
 	PART_FLAG_POSITION_Z		= 1 << 6,
-	PART_FLAG_PIVOT_X			= 1 << 7,
-	PART_FLAG_PIVOT_Y			= 1 << 8,
+	PART_FLAG_ANCHOR_X			= 1 << 7,
+	PART_FLAG_ANCHOR_Y			= 1 << 8,
 	PART_FLAG_ROTATIONX			= 1 << 9,
 	PART_FLAG_ROTATIONY			= 1 << 10,
 	PART_FLAG_ROTATIONZ			= 1 << 11,
@@ -398,12 +429,12 @@ public:
 	/**
 	 * 再生を中断します.
 	 */
-	void pause();
+	void animePause();
 
 	/**
 	 * 再生を再開します.
 	 */
-	void resume();
+	void animeResume();
 
 	/**
 	 * 再生を停止します.
@@ -504,10 +535,6 @@ public:
 
 	/**
 	* indexからパーツ名を取得します.
-	*
-	* @param  result        パーツ情報を受け取るバッファ
-	* @param  name          取得するパーツ名
-	* @param  frameNo       取得するフレーム番号 -1の場合は現在再生しているフレームが適用される
 	*/
 	const char* getPartName(int partId) const;
 
@@ -527,17 +554,6 @@ public:
 	* SSの非表示アトリビュート設定するわけではないので注意してください。
 	*/
 	void setPartVisible(std::string partsname, bool flg);
-
-	/**
-	* パーツ名からパーツに割り当たるセルを変更します.
-	* この関数で設定したパーツは参照セルアチリビュートの影響をうけません。
-	* アニメに設定されたセルに戻す場合は、セル名に""を指定してください。
-	*
-	* @param  partsname         パーツ名
-	* @param  sscename          セルマップ名
-	* @param  cellname          表示させたいセル名
-	*/
-	void setPartCell(std::string partsname, std::string sscename, std::string cellname);
 
 	/*
 	* プレイヤーの透明度を設定します(0～255).
@@ -568,8 +584,34 @@ public:
 	* 指定したパーツがインスタンスパーツでない場合、falseを返します.
 	* 再生するアニメの名前は"ssae名/アニメーション名"として再生してください。
 	* 現在再生しているアニメを指定することは入れ子となり無限ループとなるためできません。
+	*
+	* インスタンスキーを手動で設定する事が出来ます。
+	* アニメーションに合わせて開始フレーム、終了フレーム等のインスタンスアトリビュート情報を設定してください。
+	* 終了フレーム最大値は総フレーム-1になります。
+	* 上書きフラグがfalseの場合、SS上に設定されたインスタンスアトリビュートの設定を使用します。
+	*
+	* @param  partsname			SS上のパーツ名
+	* @param  animeName			参照するアニメ名
+	* @param  overWrite			インスタンスキーの上書きフラグ
+	* @param  keyParam			インスタンスキーのパラメータ
 	*/
-	bool changeInstanceAnime(std::string partsname, std::string animeName);
+	bool changeInstanceAnime(std::string partsname, std::string animeName, bool overWrite, Instance keyParam);
+
+	/*
+	* プレイヤーにインスタンスパラメータを設定します。
+	*
+	* @param  overWrite			インスタンスキーの上書きフラグ
+	* @param  keyParam			インスタンスキーのパラメータ
+	*/
+	void setInstanceParam(bool overWrite, Instance keyParam);
+
+	/*
+	* プレイヤーからインスタンスパラメータを取得します。
+	*
+	* @param  overWrite			インスタンスキーの上書きフラグ
+	* @param  keyParam			インスタンスキーのパラメータ
+	*/
+	void getInstanceParam(bool *overWrite, Instance *keyParam);
 
 
 	/** ユーザーデータ、再生終了の通知を受け取る、デリゲートを設定します.
@@ -660,7 +702,6 @@ protected:
 	bool				_isContentScaleFactorAuto;
 	int					_prevDrawFrameNo;
 	bool				_partVisible[PART_VISIBLE_MAX];
-	int					_cellChange[PART_VISIBLE_MAX];
 	int					_partIndex[PART_VISIBLE_MAX];
 	int					_InstanceAlpha;
 	float				_InstanceRotX;
@@ -670,6 +711,8 @@ protected:
 	int					_col_r;
 	int					_col_g;
 	int					_col_b;
+	bool				_instanceOverWrite;		//インスタンス情報を上書きするか？
+	Instance			_instanseParam;			//インスタンスパラメータ
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;

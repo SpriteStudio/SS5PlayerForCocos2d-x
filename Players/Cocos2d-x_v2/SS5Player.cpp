@@ -15,7 +15,7 @@ namespace ss
  */
 
 static const ss_u32 DATA_ID = 0x42505353;
-static const ss_u32 DATA_VERSION = 2;
+static const ss_u32 DATA_VERSION = 1;
 
 
 /**
@@ -675,6 +675,22 @@ cocos2d::CCTexture2D* ResourceManager::getTexture(char* ssbpName, char* ssceName
 	return(tex);
 }
 
+//アニメーションの総フレーム数を取得する
+int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
+{
+	int rc = -1;
+
+	ResourceSet* rs = getData(ssbpName);
+	AnimeRef* animeRef = rs->animeCache->getReference(animeName);
+	if (animeRef == nullptr)
+	{
+		std::string msg = Format("Not found animation > anime=%s", animeName.c_str());
+		CCAssert(animeRef != nullptr, msg.c_str());
+	}
+	rc = animeRef->animationData->numFrames;
+
+	return(rc);
+}
 
 /**
 * State
@@ -686,8 +702,8 @@ struct State
 	float x;						/// SS5アトリビュート：X座標
 	float y;						/// SS5アトリビュート：Y座標
 	float z;						/// SS5アトリビュート：Z座標
-	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
-	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
+	float anchorX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
+	float anchorY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
 	float rotationX;				/// X回転（親子関係計算済）
 	float rotationY;				/// Y回転（親子関係計算済）
 	float rotationZ;				/// Z回転（親子関係計算済）
@@ -719,8 +735,8 @@ struct State
 		x = 0.0f;
 		y = 0.0f;
 		z = 0.0f;
-		pivotX = 0.0f;
-		pivotY = 0.0f;
+		anchorX = 0.0f;
+		anchorY = 0.0f;
 		rotationX = 0.0f;
 		rotationY = 0.0f;
 		rotationZ = 0.0f;
@@ -825,8 +841,8 @@ public:
 		setStateValue(_state.x, state.x);
 		setStateValue(_state.y, state.y);
 		setStateValue(_state.z, state.z);
-		setStateValue(_state.pivotX, state.pivotX);
-		setStateValue(_state.pivotY, state.pivotY);
+		setStateValue(_state.anchorX, state.anchorX);
+		setStateValue(_state.anchorY, state.anchorY);
 		setStateValue(_state.rotationX, state.rotationX);
 		setStateValue(_state.rotationY, state.rotationY);
 		setStateValue(_state.rotationZ, state.rotationZ);
@@ -901,6 +917,7 @@ Player::Player(void)
 	, _col_r(255)
 	, _col_g(255)
 	, _col_b(255)
+	, _instanceOverWrite(false)
 	, _delegate(0)
 {
 	int i;
@@ -908,9 +925,8 @@ Player::Player(void)
 	{
 		_partVisible[i] = true;
 		_partIndex[i] = -1;
-		_cellChange[i] = -1;
 	}
-
+	_instanseParam.clear();
 }
 
 Player::~Player()
@@ -1139,12 +1155,12 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	setFrame(_playingFrame);
 }
 
-void Player::pause()
+void Player::animePause()
 {
 	_isPausing = true;
 }
 
-void Player::resume()
+void Player::animeResume()
 {
 	_isPausing = false;
 }
@@ -1475,8 +1491,8 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					result.x = (sprite->_mat[12] * scaleX) + pos.x;				//画面上のX座標を取得
 					result.y = (sprite->_mat[13] * scaleY) + pos.y;				//画面上のY座標を取得
 					result.z = sprite->_state.z;								// Z座標アトリビュートを取得
-					result.pivotX = sprite->_state.pivotX;						// 原点Xオフセット＋セルに設定された原点オフセットX
-					result.pivotY = sprite->_state.pivotY;						// 原点Yオフセット＋セルに設定された原点オフセットY
+					result.anchorX = sprite->_state.anchorX;					// 原点Xオフセット＋セルに設定された原点オフセットX
+					result.anchorY = sprite->_state.anchorY;					// 原点Yオフセット＋セルに設定された原点オフセットY
 					result.rotationX = sprite->_state.rotationX;				// SS5アトリビュート：X回転
 					result.rotationY = sprite->_state.rotationY;				// SS5アトリビュート：Y回転
 					result.rotationZ = sprite->_state.rotationZ;				// SS5アトリビュート：Z回転
@@ -1586,61 +1602,6 @@ void Player::setPartVisible(std::string partsname, bool flg)
 	}
 }
 
-//パーツに割り当たるセルを変更します
-void Player::setPartCell(std::string partsname, std::string sscename, std::string cellname)
-{
-	bool rc = false;
-	if (_currentAnimeRef)
-	{
-		ToPointer ptr(_currentRs->data);
-
-		int changeCellIndex = -1;
-		if ((sscename != "") && (cellname != ""))
-		{
-			//セルマップIDを取得する
-			//必要あり
-
-
-			const Cell* cells = static_cast<const Cell*>(ptr(_currentRs->data->cells));
-
-			//名前からインデックスの取得
-			int cellindex = -1;
-			for (int i = 0; i < _currentRs->data->numCells; i++)
-			{
-				const Cell* cell = &cells[i];
-				const char* name1 = static_cast<const char*>(ptr(cell->name));
-				const CellMap* cellMap = static_cast<const CellMap*>(ptr(cell->cellMap));
-				const char* name2 = static_cast<const char*>(ptr(cellMap->name));
-				if (strcmp(cellname.c_str(), name1) == 0)
-				{
-					if (strcmp(sscename.c_str(), name2) == 0)
-					{
-						changeCellIndex = i;
-						break;
-					}
-				}
-			}
-		}
-
-		const AnimePackData* packData = _currentAnimeRef->animePackData;
-		const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
-
-		for (int index = 0; index < packData->numParts; index++)
-		{
-			int partIndex = _partIndex[index];
-
-			const PartData* partData = &parts[partIndex];
-			const char* partName = static_cast<const char*>(ptr(partData->name));
-			if (strcmp(partName, partsname.c_str()) == 0)
-			{
-				//セル番号を設定
-				_cellChange[index] = changeCellIndex;	//上書き解除
-				break;
-			}
-		}
-	}
-}
-
 // setContentScaleFactorの数値に合わせて内部のUV補正を有効にするか設定します。
 void Player::setContentScaleEneble(bool eneble)
 {
@@ -1648,7 +1609,7 @@ void Player::setContentScaleEneble(bool eneble)
 }
 
 // インスタンスパーツが再生するアニメを変更します。
-bool Player::changeInstanceAnime(std::string partsname, std::string animename)
+bool Player::changeInstanceAnime(std::string partsname, std::string animename, bool overWrite, Instance keyParam)
 {
 	//名前からパーツを取得
 	bool rc = false;
@@ -1675,6 +1636,9 @@ bool Player::changeInstanceAnime(std::string partsname, std::string animename)
 					if (_currentAnimename != animename)
 					{
 						sprite->_ssplayer->play(animename);
+						setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
+						sprite->_ssplayer->animeResume();		//アニメ切り替え時にがたつく問題の対応
+						sprite->_liveFrame = 0;					//独立動作の場合再生位置をリセット
 						rc = true;
 					}
 				}
@@ -1685,6 +1649,20 @@ bool Player::changeInstanceAnime(std::string partsname, std::string animename)
 	}
 
 	return (rc);
+}
+
+//インスタンスパラメータを設定します
+void Player::setInstanceParam(bool overWrite, Instance keyParam)
+{
+	_instanceOverWrite = overWrite;		//インスタンス情報を上書きするか？
+	_instanseParam = keyParam;			//インスタンスパラメータ
+
+}
+//インスタンスパラメータを取得します
+void Player::getInstanceParam(bool *overWrite, Instance *keyParam)
+{
+	*overWrite = _instanceOverWrite;		//インスタンス情報を上書きするか？
+	*keyParam = _instanseParam;			//インスタンスパラメータ
 }
 
 //アニメーションの色成分を変更します
@@ -1751,8 +1729,8 @@ void Player::setFrame(int frameNo)
 		float x					= flags & PART_FLAG_POSITION_X ? reader.readS16() : init->positionX;
 		float y					= flags & PART_FLAG_POSITION_Y ? reader.readS16() : init->positionY;
 		float z					= flags & PART_FLAG_POSITION_Z ? reader.readS16() : init->positionZ;
-		float pivotX            = flags & PART_FLAG_PIVOT_X ? reader.readFloat() : init->pivotX;
-		float pivotY            = flags & PART_FLAG_PIVOT_Y ? -reader.readFloat() : -init->pivotY;		//cocosでは上下が逆なので反転する
+		float anchorX			= flags & PART_FLAG_ANCHOR_X ? reader.readFloat() : init->anchorX;
+		float anchorY			= flags & PART_FLAG_ANCHOR_Y ? reader.readFloat() : init->anchorY;
 		float rotationX			= flags & PART_FLAG_ROTATIONX ? -reader.readFloat() : -init->rotationX;	//cocos2dx ver2系では非対応
 		float rotationY			= flags & PART_FLAG_ROTATIONY ? -reader.readFloat() : -init->rotationY;	//cocos2dx ver2系では非対応
 		float rotationZ			= flags & PART_FLAG_ROTATIONZ ? -reader.readFloat() : -init->rotationZ;
@@ -1778,12 +1756,6 @@ void Player::setFrame(int frameNo)
 			isVisibled = false;
 		}
 
-		if (_cellChange[index] != -1)
-		{
-			//ユーザーがセルを上書きした
-			cellIndex = _cellChange[index];
-		}
-
 		//固定少数を少数へ戻す
 		x = x / DOT;
 		y = y / DOT;
@@ -1796,34 +1768,14 @@ void Player::setFrame(int frameNo)
 		//全パーツにインスタンスの透明度を加える必要がある
 		opacity = (opacity * _InstanceAlpha) / 255;
 
-		//セルの原点設定を反映させる
-		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : nullptr;
-		if (cellRef)
-		{
-			float cpx = 0;
-			float cpy = 0;
-
-			cpx = cellRef->cell->pivot_X;
-			if (flipX) cpx = -cpx;	// 水平フリップによって原点を入れ替える
-			cpy = cellRef->cell->pivot_Y;
-			if (flipY) cpy = -cpy;	// 垂直フリップによって原点を入れ替える
-
-			pivotX += cpx;
-			pivotY += cpy;
-
-		}
-		pivotX += 0.5f;
-		pivotY += 0.5f;
-
-
 		//ステータス保存
 		state.flags = flags;
 		state.cellIndex = cellIndex;
 		state.x = x;
 		state.y = y;
 		state.z = z;
-		state.pivotX = pivotX;
-		state.pivotY = pivotY;
+		state.anchorX = anchorX;
+		state.anchorY = anchorY;
 		state.rotationX = rotationX;
 		state.rotationY = rotationY;
 		state.rotationZ = rotationZ;
@@ -1864,6 +1816,7 @@ void Player::setFrame(int frameNo)
 		sprite->setPosition(cocos2d::CCPoint(x, y));
 		sprite->setRotation(rotationZ);
 
+		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : NULL;
 		bool setBlendEnabled = true;
 		if (cellRef)
 		{
@@ -1988,7 +1941,7 @@ void Player::setFrame(int frameNo)
 		}
 		sprite->setVisible(isVisibled);
 
-		sprite->setAnchorPoint(cocos2d::CCPoint(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
+		sprite->setAnchorPoint(cocos2d::CCPoint(anchorX , 1.0f - anchorY));	//cocosは下が-なので座標を反転させる
 //		sprite->setFlippedX(flags & PART_FLAG_FLIP_H);
 //		sprite->setFlippedY(flags & PART_FLAG_FLIP_V);
 		sprite->setOpacity(opacity);
@@ -2202,15 +2155,6 @@ void Player::setFrame(int frameNo)
 			//上下反転を行う場合はテクスチャUVを逆にする
 			v_code = -1;
 		}
-		//UV回転
-		if (flags & PART_FLAG_UV_ROTATION)
-		{
-			//頂点位置を回転させる
-			get_uv_rotation(&quad.tl.texCoords.u, &quad.tl.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.tr.texCoords.u, &quad.tr.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.bl.texCoords.u, &quad.bl.texCoords.v, u_center, v_center, uv_rotation);
-			get_uv_rotation(&quad.br.texCoords.u, &quad.br.texCoords.v, u_center, v_center, uv_rotation);
-		}
 
 		//UVスケール || 反転
 		if ((flags & PART_FLAG_U_SCALE) || (flags & PART_FLAG_FLIP_H))
@@ -2228,11 +2172,23 @@ void Player::setFrame(int frameNo)
 			quad.br.texCoords.v = v_center + (v_height * uv_scale_Y * v_code);
 		}
 
+		//UV回転
+		if (flags & PART_FLAG_UV_ROTATION)
+		{
+			//頂点位置を回転させる
+			get_uv_rotation(&quad.tl.texCoords.u, &quad.tl.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.tr.texCoords.u, &quad.tr.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.bl.texCoords.u, &quad.bl.texCoords.v, u_center, v_center, uv_rotation);
+			get_uv_rotation(&quad.br.texCoords.u, &quad.br.texCoords.v, u_center, v_center, uv_rotation);
+		}
 
 
 		//インスタンスパーツの場合
 		if (partData->type == PARTTYPE_INSTANCE)
 		{
+			bool overWrite;
+			Instance keyParam;
+			getInstanceParam(&overWrite, &keyParam);
 			//描画
 			int refKeyframe = 0;
 			int refStartframe = 0;
@@ -2288,6 +2244,18 @@ void Player::setFrame(int frameNo)
 					independent = true;
 				}
 			}
+			//インスタンスパラメータを上書きする
+			if (overWrite == true)
+			{
+				refStartframe = keyParam.refStartframe;		//開始フレーム
+				refEndframe = keyParam.refEndframe;			//終了フレーム
+				refSpeed = keyParam.refSpeed;				//再生速度
+				refloopNum = keyParam.refloopNum;			//ループ回数
+				infinity = keyParam.infinity;				//無限ループ
+				reverse = keyParam.reverse;					//逆再選
+				pingpong = keyParam.pingpong;				//往復
+				independent = keyParam.independent;			//独立動作
+			}
 
 			//タイムライン上の時間 （絶対時間）
 			int time = frameNo;
@@ -2296,7 +2264,8 @@ void Player::setFrame(int frameNo)
 			if (independent)
 			{
 				float fdt = cocos2d::CCDirector::sharedDirector()->getAnimationInterval();
-				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);
+				float delta = fdt / (1.0f / _animefps);						//v1.0.8	独立動作時は親アニメのfpsを使用する
+//				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);	//v1.0.7	独立動作時はソースアニメのfpsを使用する
 
 				sprite->_liveFrame += delta;
 				time = (int)sprite->_liveFrame;
@@ -2314,6 +2283,10 @@ void Player::setFrame(int frameNo)
 
 			//尺が０もしくはマイナス（あり得ない
 			if (inst_scale <= 0) continue;
+			//changeInstanceAnime()でソースアニメの参照を変更した場合に尺が変わるので、超えてしまう場合がある。
+			//最大を超えた場合はメモリ外を参照してしまうのでアサートで止めておく
+			CCAssert(inst_scale <= sprite->_ssplayer->_currentAnimeRef->animationData->numFrames, "_playingFrame It has more than the length of the InstanceAnimation");
+
 			int	nowloop = (reftime / inst_scale);	//現在までのループ数
 
 			int checkloopnum = refloopNum;
