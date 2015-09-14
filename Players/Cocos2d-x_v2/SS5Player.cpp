@@ -1082,10 +1082,10 @@ int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
 
 	ResourceSet* rs = getData(ssbpName);
 	AnimeRef* animeRef = rs->animeCache->getReference(animeName);
-	if (animeRef == nullptr)
+	if (animeRef == NULL)
 	{
 		std::string msg = Format("Not found animation > anime=%s", animeName.c_str());
-		CCAssert(animeRef != nullptr, msg.c_str());
+		CCAssert(animeRef != NULL, msg.c_str());
 	}
 	rc = animeRef->animationData->numFrames;
 
