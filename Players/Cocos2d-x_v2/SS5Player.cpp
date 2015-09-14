@@ -274,7 +274,7 @@ public:
 protected:
 	void init(const ProjectData* data, const std::string& imageBaseDir)
 	{
-		CCAssert(data != nullptr, "Invalid data");
+		CCAssert(data != NULL, "Invalid data");
 
 		ToPointer ptr(data);
 
@@ -2233,7 +2233,7 @@ void Player::setFrame(int frameNo)
 		opacity = (opacity * _InstanceAlpha) / 255;
 
 		//セルの原点設定を反映させる
-		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : nullptr;
+		CellRef* cellRef = cellIndex >= 0 ? _currentRs->cellCache->getReference(cellIndex) : NULL;
 		if (cellRef)
 		{
 			float cpx = 0;
