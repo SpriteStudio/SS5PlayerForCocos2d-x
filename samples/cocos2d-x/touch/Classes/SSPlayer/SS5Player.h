@@ -41,7 +41,8 @@ Cocos2d-X Ver3.7に対応しています。
 
 #include "cocos2d.h"
 #include "SS5PlayerData.h"
-
+#include "./Common/Animator/ssplayer_effect.h"
+#include "./Common/Animator/ssplayer_PartState.h"
 
 namespace ss
 {
@@ -378,33 +379,6 @@ namespace SsTexFilterMode
 		num
 	};
 };
-
-//エフェクトコマンド種別
-namespace SsEffectFunctionType
-{
-	enum enum_
-	{
-		Base,
-		Basic,
-		RndSeedChange,
-		Delay,
-		Gravity,
-		Position,
-		//TransPosition,
-		Rotation,
-		TransRotation,
-		TransSpeed,
-		TangentialAcceleration,
-		InitColor,
-		TransColor,
-		AlphaFade,
-		Size,
-		TransSize,
-		PointGravity,
-		TurnToDirectionEnabled,
-	};
-}
-
 
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)

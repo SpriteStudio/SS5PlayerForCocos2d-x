@@ -1166,6 +1166,10 @@ public:
 	ss::Player*			_ssplayer;
 	float				_liveFrame;
 
+	//エフェクト用パラメータ
+	SsEffectRenderer*	refEffect;
+	SsPartState			partState;
+
 public:
 	CustomSprite();
 	virtual ~CustomSprite();
@@ -1748,10 +1752,288 @@ void Player::setPartsParentage()
 			sprite->_ssplayer = ss::Player::create();
 			sprite->_ssplayer->setData(_currentdataKey);
 			sprite->_ssplayer->play(refanimeName);				 // アニメーション名を指定(ssae名/アニメーション名も可能、詳しくは後述)
-			sprite->_ssplayer->stop();
+			sprite->_ssplayer->animePause();
 			sprite->addChild(sprite->_ssplayer);
 		}
 
+		//エフェクトパーツの生成
+		if (sprite->refEffect)
+		{
+			delete sprite->refEffect;
+		}
+
+		std::string refeffectName = static_cast<const char*>(ptr(partData->effectfilename));
+		if (refeffectName != "")
+		{
+			EffectFileRef* effectref = _currentRs->effectCache->getReference(refeffectName);
+			if (effectref)
+			{
+
+
+				//エフェクトモデルの作成
+				SsEffectModel* effectmodel = new SsEffectModel();
+
+				for (int nodeindex = 0; nodeindex < effectref->_node.size(); nodeindex++)
+				{
+					EffectNodeRef *nodeRef = effectref->_node.at(nodeindex);
+					SsEffectNode *node = new SsEffectNode();
+					node->arrayIndex = nodeRef->effectNode->arrayIndex;
+					node->parentIndex = nodeRef->effectNode->parentIndex;
+					node->type = (SsEffectNodeType::_enum)nodeRef->effectNode->type;
+					node->visible = true;
+
+					SsEffectBehavior behavior;
+					//インデックスだけ入れとく
+					behavior.CellIndex = nodeRef->effectNode->cellIndex;
+//					behavior.refCell;
+//					behavior.CellName;
+//					behavior.CellMapName;
+					behavior.blendType = (SsRenderBlendType::_enum)nodeRef->effectNode->blendType;
+
+					for (int behaviorindex = 0; behaviorindex < nodeRef->_behavior.size(); behaviorindex++)
+					{
+						//パラメータを作ってpush_backで登録していく
+						EffectBehaviorRef *behaviorref = new EffectBehaviorRef();
+						behaviorref = nodeRef->_behavior.at(behaviorindex);
+						switch (behaviorref->type)
+						{
+							case SsEffectFunctionType::Basic:
+							{
+								//基本情報
+								ParticleElementBasic *effectParam = new ParticleElementBasic();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->priority = behaviorref->elementBasic.priority;							//表示優先度
+								effectParam->maximumParticle = behaviorref->elementBasic.maximumParticle;			//最大パーティクル数
+								effectParam->attimeCreate = behaviorref->elementBasic.attimeCreate;					//一度に作成するパーティクル数
+								effectParam->interval = behaviorref->elementBasic.interval;							//生成間隔
+								effectParam->lifetime = behaviorref->elementBasic.lifetime;							//エミッター生存時間
+								effectParam->speed.setMinMax(behaviorref->elementBasic.speedMinValue, behaviorref->elementBasic.speedMaxValue);				//初速
+								effectParam->lifespan.setMinMax(behaviorref->elementBasic.lifespanMinValue, behaviorref->elementBasic.lifespanMaxValue);	//パーティクル生存時間
+								effectParam->angle = behaviorref->elementBasic.angle;								//射出方向
+								effectParam->angleVariance = behaviorref->elementBasic.angleVariance;				//射出方向範囲
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::RndSeedChange:
+							{
+								//シード上書き
+								ParticleElementRndSeedChange *effectParam = new ParticleElementRndSeedChange();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->Seed = behaviorref->elementRndSeedChange.Seed;							//上書きするシード値
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::Delay:
+							{
+								//発生：タイミング
+								ParticleElementDelay *effectParam = new ParticleElementDelay();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->DelayTime = behaviorref->elementDelay.DelayTime;			//遅延時間
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::Gravity:
+							{
+								//重力を加える
+								ParticleElementGravity *effectParam = new ParticleElementGravity();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->Gravity.x = behaviorref->elementGravity.Gravity_x;			//X方向の重力
+								effectParam->Gravity.y = behaviorref->elementGravity.Gravity_y;			//Y方向の重力
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::Position:
+							{
+								//座標：生成時
+								ParticleElementPosition *effectParam = new ParticleElementPosition();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->OffsetX.setMinMax(behaviorref->elementPosition.OffsetXMinValue, behaviorref->elementPosition.OffsetXMaxValue); 	//X座標に加算最小
+								effectParam->OffsetY.setMinMax(behaviorref->elementPosition.OffsetYMinValue, behaviorref->elementPosition.OffsetYMaxValue);	//X座標に加算最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::Rotation:
+							{
+								//Z回転を追加
+								ParticleElementRotation *effectParam = new ParticleElementRotation();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->Rotation.setMinMax(behaviorref->elementRotation.RotationMinValue, behaviorref->elementRotation.RotationMaxValue);		//角度初期値最小
+								effectParam->RotationAdd.setMinMax(behaviorref->elementRotation.RotationAddMinValue, behaviorref->elementRotation.RotationAddMaxValue);	//角度初期加算値最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::TransRotation:
+							{
+								//Z回転速度変更
+								ParticleElementRotationTrans *effectParam = new ParticleElementRotationTrans();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->RotationFactor = behaviorref->elementRotationTrans.RotationFactor;		//角度目標加算値
+								effectParam->EndLifeTimePer = behaviorref->elementRotationTrans.EndLifeTimePer;		//到達時間
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::TransSpeed:
+							{
+								//速度：変化
+								ParticleElementTransSpeed *effectParam = new ParticleElementTransSpeed();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->Speed.setMinMax(behaviorref->elementTransSpeed.SpeedMinValue, behaviorref->elementTransSpeed.SpeedMaxValue);			//速度目標値最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::TangentialAcceleration:
+							{
+								//接線加速度
+								ParticleElementTangentialAcceleration *effectParam = new ParticleElementTangentialAcceleration();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->Acceleration.setMinMax(behaviorref->elementTangentialAcceleration.AccelerationMinValue, behaviorref->elementTangentialAcceleration.AccelerationMaxValue );	//設定加速度最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::InitColor:
+							{
+								//カラーRGBA：生成時
+								ParticleElementInitColor *effectParam = new ParticleElementInitColor();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+
+								int r = (behaviorref->elementInitColor.ColorMinValue & 0xFF000000) >> 24;
+								int g = (behaviorref->elementInitColor.ColorMinValue & 0x00FF0000) >> 16;
+								int b = (behaviorref->elementInitColor.ColorMinValue & 0x0000FF00) >> 8;
+								int a = (behaviorref->elementInitColor.ColorMinValue & 0x000000FF) >> 0;
+								SsU8Color min(r,g,b,a);
+								r = (behaviorref->elementInitColor.ColorMaxValue & 0xFF000000) >> 24;
+								g = (behaviorref->elementInitColor.ColorMaxValue & 0x00FF0000) >> 16;
+								b = (behaviorref->elementInitColor.ColorMaxValue & 0x0000FF00) >> 8;
+								a = (behaviorref->elementInitColor.ColorMaxValue & 0x000000FF) >> 0;
+								SsU8Color max(r, g, b, a);
+								effectParam->Color.setMinMax(min, max);			//設定カラー最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::TransColor:
+							{
+								//カラーRGB：変化
+								ParticleElementTransColor *effectParam = new ParticleElementTransColor();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+
+								int r = (behaviorref->elementTransColor.ColorMinValue & 0xFF000000) >> 24;
+								int g = (behaviorref->elementTransColor.ColorMinValue & 0x00FF0000) >> 16;
+								int b = (behaviorref->elementTransColor.ColorMinValue & 0x0000FF00) >> 8;
+								int a = (behaviorref->elementTransColor.ColorMinValue & 0x000000FF) >> 0;
+								SsU8Color min(r, g, b, a);
+								r = (behaviorref->elementTransColor.ColorMaxValue & 0xFF000000) >> 24;
+								g = (behaviorref->elementTransColor.ColorMaxValue & 0x00FF0000) >> 16;
+								b = (behaviorref->elementTransColor.ColorMaxValue & 0x0000FF00) >> 8;
+								a = (behaviorref->elementTransColor.ColorMaxValue & 0x000000FF) >> 0;
+								SsU8Color max(r, g, b, a);
+								effectParam->Color.setMinMax(min, max);			//設定カラー最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::AlphaFade:
+							{
+								//フェード
+								ParticleElementAlphaFade *effectParam = new ParticleElementAlphaFade();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->disprange.setMinMax(behaviorref->elementAlphaFade.disprangeMinValue, behaviorref->elementAlphaFade.disprangeMaxValue);		//表示区間開始
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::Size:
+							{
+								//スケール：生成時
+								ParticleElementSize *effectParam = new ParticleElementSize();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->SizeX.setMinMax(behaviorref->elementSize.SizeXMinValue, behaviorref->elementSize.SizeXMaxValue);			//幅倍率最小
+								effectParam->SizeY.setMinMax(behaviorref->elementSize.SizeYMinValue, behaviorref->elementSize.SizeYMaxValue);			//高さ倍率最小
+								effectParam->ScaleFactor.setMinMax(behaviorref->elementSize.ScaleFactorMinValue, behaviorref->elementSize.ScaleFactorMaxValue);		//倍率最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::TransSize:
+							{
+								//スケール：変化
+								ParticleElementTransSize *effectParam = new ParticleElementTransSize();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->SizeX.setMinMax(behaviorref->elementTransSize.SizeXMinValue, behaviorref->elementTransSize.SizeXMaxValue);			//幅倍率最小
+								effectParam->SizeY.setMinMax(behaviorref->elementTransSize.SizeYMinValue, behaviorref->elementTransSize.SizeYMaxValue);			//高さ倍率最小
+								effectParam->ScaleFactor.setMinMax(behaviorref->elementTransSize.ScaleFactorMinValue, behaviorref->elementTransSize.ScaleFactorMaxValue);		//倍率最小
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::PointGravity:
+							{
+								//重力点の追加
+								ParticlePointGravity *effectParam = new ParticlePointGravity();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+								effectParam->Position.x = behaviorref->pointGravity.Position_x;				//重力点X
+								effectParam->Position.y = behaviorref->pointGravity.Position_y;				//重力点Y
+								effectParam->Power = behaviorref->pointGravity.Power;					//パワー
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							case SsEffectFunctionType::TurnToDirectionEnabled:
+							{
+								//進行方向に向ける
+								ParticleTurnToDirectionEnabled *effectParam = new ParticleTurnToDirectionEnabled();
+								effectParam->setType((SsEffectFunctionType::enum_)behaviorref->type);				//コマンドの種類
+
+								behavior.plist.push_back(effectParam);												//パラメータを追加
+								break;
+							}
+							default:
+								break;
+						}
+					}
+					node->behavior = behavior;
+					effectmodel->nodeList.push_back(node);
+					if (nodeindex == 0)
+					{
+					}
+				}
+				//ツリーの構築
+				if (effectmodel->nodeList.size() > 0)
+				{
+					effectmodel->root = effectmodel->nodeList[0];	//rotノードを追加
+					for (size_t i = 1; i < effectmodel->nodeList.size(); i++)
+					{
+						int pi = effectmodel->nodeList[i]->parentIndex;
+						if (pi >= 0)
+						{
+							effectmodel->nodeList[pi]->addChildEnd(effectmodel->nodeList[i]);
+						}
+					}
+				}
+				effectmodel->lockRandSeed = effectref->effectFile->lockRandSeed; 	 // ランダムシード固定値
+				effectmodel->isLockRandSeed = effectref->effectFile->isLockRandSeed;  // ランダムシードを固定するか否か
+				effectmodel->fps = effectref->effectFile->fps;             //
+				effectmodel->effectName = refeffectName;
+
+				//エフェクトクラスにパラメータを設定する
+				SsEffectRenderer* er = new SsEffectRenderer();
+				er->setParentAnimeState(&sprite->partState);
+//				er->setCellmapManager(this->curCellMapManager);
+				er->setEffectData(effectmodel);
+				er->reload();
+				er->stop();
+				sprite->refEffect = er;
+			}
+		}
 
 	}
 }
@@ -2789,6 +3071,37 @@ void Player::setFrame(int frameNo)
 			sprite->_ssplayer->setFrameNo(_time);
 		}
 
+		//エフェクトのアップデート
+		if (sprite->refEffect)
+		{
+			if (isVisibled == false)
+			{
+				sprite->refEffect->stop();
+				sprite->refEffect->reload();
+			}
+			else{
+				//if ( hideTriger )
+				{
+					//パーツのステータスの更新
+					sprite->partState.alpha = opacity / 255.0f;
+					int matindex = 0;
+					for (matindex = 0; matindex < 16; matindex++)
+					{
+						sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
+					}
+
+					//エフェクトアップデート
+					sprite->refEffect->setSeed(rand() % 31);
+
+//					effectRender->setAnimeFrameOffset( nowtime );
+					sprite->refEffect->setLoop(false);
+					sprite->refEffect->play();
+					float fdt = cocos2d::Director::getInstance()->getAnimationInterval();
+					sprite->refEffect->update(fdt);
+					sprite->refEffect->draw();
+				}
+			}
+		}
 
 	}
 
@@ -3003,6 +3316,7 @@ CustomSprite::CustomSprite()
 	, _colorBlendFuncNo(0)
 	, _liveFrame(0.0f)
 	, _hasPremultipliedAlpha(0)
+	, refEffect(0)
 {}
 
 CustomSprite::~CustomSprite()
