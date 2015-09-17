@@ -3,6 +3,9 @@
 
 #include "cocos2d.h"
 
+namespace ss
+{
+
 /**
 * SsCell
 */
@@ -13,11 +16,14 @@ struct SsCell
 	cocos2d::Texture2D* texture;
 	cocos2d::Rect rect;
 	std::string texname;
+	int			cellIndex;
+	std::string cellName;
 
 	SsCell():
 		  pivot_X(0)
 		, pivot_Y(0)
 		, texture(0)
+		, cellIndex(-1)
 	{}
 };
 
@@ -34,5 +40,5 @@ struct SsCellValue
 		{}
 };
 
-
+};
 #endif

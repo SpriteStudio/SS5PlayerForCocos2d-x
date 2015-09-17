@@ -3,6 +3,8 @@
 
 //#include "../loader/ssloader.h"
 //#include "../Helper/ssHelper.h"
+namespace ss
+{
 
 
 class SsAnimeDecoder;
@@ -29,6 +31,6 @@ struct SsPartState
 
 };
 
-
+};
 
 #endif

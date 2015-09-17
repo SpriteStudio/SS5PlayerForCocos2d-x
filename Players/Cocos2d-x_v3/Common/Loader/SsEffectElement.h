@@ -5,6 +5,9 @@
 #include "sstypes.h"
 //#include "ssarchiver.h"
 
+namespace ss
+{
+
 enum EffectPartType
 {
 	EffectPartTypeEmiiter,
@@ -712,7 +715,7 @@ public:
 
 
 
-
+};
 
 
 

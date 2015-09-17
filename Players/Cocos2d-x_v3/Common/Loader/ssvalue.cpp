@@ -2,6 +2,8 @@
 #include "ssstring_uty.h"
 #include "ssvalue.h"
 
+namespace ss
+{
 
 /*
 //SsValue用のシリアライザ
@@ -77,3 +79,5 @@ void	SsValueSeriarizer( ISsXmlArchiver* ar , SsValue& v , const std::string key)
 
 }
 */
+
+};

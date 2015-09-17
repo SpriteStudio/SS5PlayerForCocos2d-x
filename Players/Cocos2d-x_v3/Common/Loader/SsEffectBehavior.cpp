@@ -1,6 +1,8 @@
 #include "SsEffectBehavior.h"
 
 
+namespace ss
+{
 
 /*
 SsEffectElementBase*	SsEffectBehavior::Factory(const char* name , XMLElement* e )
@@ -59,3 +61,5 @@ void	SsEffectBehavior::EffectElementLoader(ISsXmlArchiver* ar)
 }
 
 */
+
+};

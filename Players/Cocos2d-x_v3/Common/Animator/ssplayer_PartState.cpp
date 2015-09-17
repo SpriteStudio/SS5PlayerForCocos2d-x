@@ -2,6 +2,9 @@
 //#include "ssplayer_animedecode.h"
 #include "ssplayer_PartState.h"
 
+namespace ss
+{
+
 SsPartState::SsPartState() : alphaBlendType(SsBlendType::invalid) {init();}
 
 SsPartState::~SsPartState(){
@@ -23,4 +26,4 @@ void	SsPartState::init()
 
 }
 
-
+};

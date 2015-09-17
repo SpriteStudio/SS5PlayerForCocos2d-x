@@ -5,6 +5,9 @@
 #include <memory.h>
 #include <math.h>
 
+namespace ss
+{
+
 void	IdentityMatrix( float* matrix )
 {
 
@@ -150,3 +153,4 @@ void    Matrix4RotationZ( float* _matrix ,const float radians )
 }
 
 
+};

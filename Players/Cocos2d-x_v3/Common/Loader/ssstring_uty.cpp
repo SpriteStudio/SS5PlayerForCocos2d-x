@@ -10,6 +10,8 @@
 
 #endif
 
+namespace ss
+{
 
 //=========================================================================================
 //! 文字列の切り分け
@@ -126,3 +128,4 @@ std::string getFullPath( const std::string& basePath , const std::string &relPat
 #endif
 
 }
+};

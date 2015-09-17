@@ -4,6 +4,8 @@
 
 #include "../Loader/sstypes.h"
 
+namespace ss
+{
 
 
 struct SsPartState;
@@ -53,6 +55,6 @@ public:
 
 };
 
-
+};
 
 #endif

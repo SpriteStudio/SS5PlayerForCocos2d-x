@@ -8,6 +8,8 @@
 	#include <Windows.h>
 #endif
 
+namespace ss
+{
 
 
 void DEBUG_PRINTF( const char* strFormat, ...   )
@@ -39,3 +41,4 @@ void	THROW_ERROR_MESSAGE_MAIN( std::string str , char* fname , size_t line )
 	DEBUG_PRINTF( ___str__buffer );
 	throw ThrowErrorMessage( 0 , ___err_message );
 }
+};

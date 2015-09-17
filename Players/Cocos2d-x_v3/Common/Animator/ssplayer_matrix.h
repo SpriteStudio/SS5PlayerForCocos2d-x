@@ -4,6 +4,9 @@
 
 #include <memory>
 
+namespace ss
+{
+
 void	IdentityMatrix( float* matrix );
 void    ScaleMatrix( float* _matrix , const float x , const float y , const float z);
 void    TranslationMatrix( float* _matrix , const float x , const float y , const float z );
@@ -61,7 +64,7 @@ inline	void	RotationXYZMatrixM(  float* _matrix , const float x , const float y 
 	}
 }
 
-
+};
 
 #endif
 

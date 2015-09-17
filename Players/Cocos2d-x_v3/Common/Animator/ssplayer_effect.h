@@ -8,6 +8,9 @@
 #include "ssplayer_PartState.h"
 #include "../../SS5Player.h"
 
+namespace ss
+{
+
 class SsEffectModel;
 class SsRenderEffectBase;
 class SsEffectNode;
@@ -17,6 +20,7 @@ class SsEffectRenderAtom;
 
 class SsEffectBehavior;
 class SsEffectRenderer;
+class CustomSprite;
 
 #define PFMEM_TEST ( 1 )
 
@@ -115,7 +119,7 @@ public:
 
 
     virtual void	update(float delta){}
-	virtual void	draw(SsEffectRenderer* render, int spriteIndex){}
+	virtual void	draw(SsEffectRenderer* render){}
 
 	virtual void	debugdraw(){}
 
@@ -347,7 +351,7 @@ public:
 	virtual bool	genarate( SsEffectRenderer* render );
 
     virtual void	update(float delta);
-	virtual void	draw(SsEffectRenderer* render, int spriteInedex);
+	virtual void	draw(SsEffectRenderer* render);
 
 
 	virtual void	count()
@@ -417,9 +421,10 @@ public:
     std::list<SsEffectDrawBatch*>  drawBatchList;
 
 	//cocos2d-x用エフェクトスプライト
-	cocos2d::Vector<cocos2d::Sprite*>	*_effectSprite;
-//	cocos2d::Vector<ss::CustomSprite*>	*_effectSprite;
+//	cocos2d::Vector<cocos2d::Sprite*>	*_effectSprite;
+	cocos2d::Vector<CustomSprite*>	*_effectSprite;
 	bool _isContentScaleFactorAuto;
+	int *_effectSpriteCount;
 
 public:
 	SsEffectRenderer() : effectData(0) , parentState(0) ,mySeed(0) , render_root(0),parentAnimeStartFrame(0) , m_isLoop(false)
@@ -482,12 +487,13 @@ public:
 //	void	setCellmapManager( SsCellMapList* plist ) { curCellMapManager = plist; }
 
 	//cocos側のエフェクトスプライトを設定する
-	void setEffectSprite(cocos2d::Vector<cocos2d::Sprite*>	*spriteVec) { _effectSprite = spriteVec; }
+	void setEffectSprite(cocos2d::Vector<CustomSprite*>	*spriteVec) { _effectSprite = spriteVec; }
+	void setEffectSpriteCount(int *buff) { _effectSpriteCount = buff; }
 	void setContentScaleEneble(bool eneble){ _isContentScaleFactorAuto = eneble; }
 
 };
 
 
 
-
+};
 #endif

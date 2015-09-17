@@ -1,6 +1,9 @@
 
 #include "sstypes.h"
 
+namespace ss
+{
+
 //---------------------------------------------------------------
 //相互変換 SsPartType
 SsString	__EnumToString_( SsPartType::_enum n )
@@ -334,3 +337,4 @@ void 	__StringToEnum_( SsString n , SsRenderBlendType::_enum& out)
 	if ( n == "Mix") out = SsRenderBlendType::Mix;
 	if ( n == "Add") out = SsRenderBlendType::Add;
 }
+};

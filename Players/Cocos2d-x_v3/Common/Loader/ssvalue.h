@@ -8,6 +8,9 @@
 #include <vector>
 #include <cassert>
 
+namespace ss
+{
+
 class SsValue;
 
 typedef	wchar_t		SsChar;
@@ -321,6 +324,6 @@ static  SsValue	SsValueSeriarizer__MakeValue( const char* v )
 }
 
 
-
+};
 
 #endif

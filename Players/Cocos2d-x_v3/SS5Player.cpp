@@ -415,12 +415,12 @@ protected:
 						{
 							//スケール：生成時
 							EffectParticleElementSize effectParam;
-							effectParam.SizeXMinValue = reader.readU32();			//幅倍率最小
-							effectParam.SizeXMaxValue = reader.readU32();			//幅倍率最大
-							effectParam.SizeYMinValue = reader.readU32();			//高さ倍率最小
-							effectParam.SizeYMaxValue = reader.readU32();			//高さ倍率最大
-							effectParam.ScaleFactorMinValue = reader.readU32();		//倍率最小
-							effectParam.ScaleFactorMaxValue = reader.readU32();		//倍率最大
+							effectParam.SizeXMinValue = reader.readFloat();			//幅倍率最小
+							effectParam.SizeXMaxValue = reader.readFloat();			//幅倍率最大
+							effectParam.SizeYMinValue = reader.readFloat();			//高さ倍率最小
+							effectParam.SizeYMaxValue = reader.readFloat();			//高さ倍率最大
+							effectParam.ScaleFactorMinValue = reader.readFloat();		//倍率最小
+							effectParam.ScaleFactorMaxValue = reader.readFloat();		//倍率最大
 
 							behaviorRef->elementSize = effectParam;
 							break;
@@ -429,12 +429,12 @@ protected:
 						{
 							//スケール：変化
 							EffectParticleElementTransSize effectParam;
-							effectParam.SizeXMinValue = reader.readU32();			//幅倍率最小
-							effectParam.SizeXMaxValue = reader.readU32();			//幅倍率最大
-							effectParam.SizeYMinValue = reader.readU32();			//高さ倍率最小
-							effectParam.SizeYMaxValue = reader.readU32();			//高さ倍率最大
-							effectParam.ScaleFactorMinValue = reader.readU32();		//倍率最小
-							effectParam.ScaleFactorMaxValue = reader.readU32();		//倍率最大
+							effectParam.SizeXMinValue = reader.readFloat();			//幅倍率最小
+							effectParam.SizeXMaxValue = reader.readFloat();			//幅倍率最大
+							effectParam.SizeYMinValue = reader.readFloat();			//高さ倍率最小
+							effectParam.SizeYMaxValue = reader.readFloat();			//高さ倍率最大
+							effectParam.ScaleFactorMinValue = reader.readFloat();		//倍率最小
+							effectParam.ScaleFactorMaxValue = reader.readFloat();		//倍率最大
 
 							behaviorRef->elementTransSize = effectParam;
 							break;
@@ -443,9 +443,9 @@ protected:
 						{
 							//重力点の追加
 							EffectParticlePointGravity effectParam;
-							effectParam.Position_x = reader.readU32();				//重力点X
-							effectParam.Position_y = reader.readU32();				//重力点Y
-							effectParam.Power = reader.readU32();					//パワー
+							effectParam.Position_x = reader.readFloat();				//重力点X
+							effectParam.Position_y = reader.readFloat();				//重力点Y
+							effectParam.Power = reader.readFloat();					//パワー
 
 							behaviorRef->pointGravity = effectParam;
 							break;
@@ -1067,202 +1067,6 @@ int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
 }
 
 
-/**
- * State
- */
-struct State
-{
-	int flags;						/// このフレームで更新が行われるステータスのフラグ
-	int cellIndex;					/// パーツに割り当てられたセルの番号
-	float x;						/// SS5アトリビュート：X座標
-	float y;						/// SS5アトリビュート：Y座標
-	float z;						/// SS5アトリビュート：Z座標
-	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
-	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
-	float rotationX;				/// X回転（親子関係計算済）
-	float rotationY;				/// Y回転（親子関係計算済）
-	float rotationZ;				/// Z回転（親子関係計算済）
-	float scaleX;					/// Xスケール（親子関係計算済）
-	float scaleY;					/// Yスケール（親子関係計算済）
-	int opacity;					/// 不透明度（0～255）（親子関係計算済）
-	float size_X;					/// SS5アトリビュート：Xサイズ
-	float size_Y;					/// SS5アトリビュート：Xサイズ
-	float uv_move_X;				/// SS5アトリビュート：UV X移動
-	float uv_move_Y;				/// SS5アトリビュート：UV Y移動
-	float uv_rotation;				/// SS5アトリビュート：UV 回転
-	float uv_scale_X;				/// SS5アトリビュート：UV Xスケール
-	float uv_scale_Y;				/// SS5アトリビュート：UV Yスケール
-	float boundingRadius;			/// SS5アトリビュート：当たり半径
-	int colorBlendFunc;				/// SS5アトリビュート：カラーブレンドのブレンド方法
-	int colorBlendType;				/// SS5アトリビュート：カラーブレンドの単色か頂点カラーか。
-	bool flipX;						/// 横反転（親子関係計算済）
-	bool flipY;						/// 縦反転（親子関係計算済）
-	bool isVisibled;				/// 非表示（親子関係計算済）
-	float instancerotationX;		/// インスタンスパーツに設定されたX回転
-	float instancerotationY;		/// インスタンスパーツに設定されたY回転
-	float instancerotationZ;		/// インスタンスパーツに設定されたZ回転
-
-	void init()
-	{
-		flags = 0;
-		cellIndex = 0;
-		x = 0.0f;
-		y = 0.0f;
-		z = 0.0f;
-		pivotX = 0.0f;
-		pivotY = 0.0f;
-		rotationX = 0.0f;
-		rotationY = 0.0f;
-		rotationZ = 0.0f;
-		scaleX = 1.0f;
-		scaleY = 1.0f;
-		opacity = 255;
-		size_X = 1.0f;
-		size_Y = 1.0f;
-		uv_move_X = 0.0f;
-		uv_move_Y = 0.0f;
-		uv_rotation = 0.0f;
-		uv_scale_X = 1.0f;
-		uv_scale_Y = 1.0f;
-		boundingRadius = 0.0f;
-		colorBlendFunc = 0;
-		colorBlendType = 0;
-		flipX = false;
-		flipY = false;
-		isVisibled = false;
-		instancerotationX = 0.0f;
-		instancerotationY = 0.0f;
-		instancerotationZ = 0.0f;
-	}
-
-	State() { init(); }
-};
-
-
-/**
- * CustomSprite
- */
-class CustomSprite : public cocos2d::Sprite
-{
-private:
-	static unsigned int ssSelectorLocation;
-	static unsigned int	ssAlphaLocation;
-	static unsigned int	sshasPremultipliedAlpha;
-
-	static cocos2d::GLProgram* getCustomShaderProgram();
-
-private:
-	cocos2d::GLProgram*	_defaultShaderProgram;
-	bool				_useCustomShaderProgram;
-	float				_opacity;
-	int					_hasPremultipliedAlpha;
-	int					_colorBlendFuncNo;
-
-public:
-	cocos2d::Mat4		_mat;
-	State				_state;
-	bool				_isStateChanged;
-	CustomSprite*		_parent;
-	ss::Player*			_ssplayer;
-	float				_liveFrame;
-
-	//エフェクト用パラメータ
-	SsEffectRenderer*	refEffect;
-	SsPartState			partState;
-
-public:
-	CustomSprite();
-	virtual ~CustomSprite();
-
-	static CustomSprite* create();
-
-	void initState()
-	{
-		_mat = cocos2d::Mat4::IDENTITY;
-		_state.init();
-		_isStateChanged = true;
-	}
-	
-	void setStateValue(float& ref, float value)
-	{
-		if (ref != value)
-		{
-			ref = value;
-			_isStateChanged = true;
-		}
-	}
-	void setStateValue(int& ref, int value)
-	{
-		if (ref != value)
-		{
-			ref = value;
-			_isStateChanged = true;
-		}
-	}
-
-	void setStateValue(bool& ref, bool value)
-	{
-		if (ref != value)
-		{
-			ref = value;
-			_isStateChanged = true;
-		}
-	}
-
-	void setState(const State& state)
-	{
-		setStateValue(_state.flags, state.flags);
-		setStateValue(_state.cellIndex, state.cellIndex);
-		setStateValue(_state.x, state.x);
-		setStateValue(_state.y, state.y);
-		setStateValue(_state.z, state.z);
-		setStateValue(_state.pivotX, state.pivotX);
-		setStateValue(_state.pivotY, state.pivotY);
-		setStateValue(_state.rotationX, state.rotationX);
-		setStateValue(_state.rotationY, state.rotationY);
-		setStateValue(_state.rotationZ, state.rotationZ);
-		setStateValue(_state.scaleX, state.scaleX);
-		setStateValue(_state.scaleY, state.scaleY);
-		setStateValue(_state.opacity, state.opacity);
-		setStateValue(_state.size_X, state.size_X);
-		setStateValue(_state.size_Y, state.size_Y);
-		setStateValue(_state.uv_move_X, state.uv_move_X);
-		setStateValue(_state.uv_move_Y, state.uv_move_Y);
-		setStateValue(_state.uv_rotation, state.uv_rotation);
-		setStateValue(_state.uv_scale_X, state.uv_scale_X);
-		setStateValue(_state.uv_scale_Y, state.uv_scale_Y);
-		setStateValue(_state.boundingRadius, state.boundingRadius);
-		setStateValue(_state.isVisibled, state.isVisibled);
-		setStateValue(_state.flipX, state.flipX);
-		setStateValue(_state.flipY, state.flipY);
-		setStateValue(_state.colorBlendFunc, state.colorBlendFunc);
-		setStateValue(_state.colorBlendType, state.colorBlendType);
-
-		setStateValue(_state.instancerotationX, state.instancerotationX);
-		setStateValue(_state.instancerotationY, state.instancerotationY);
-		setStateValue(_state.instancerotationZ, state.instancerotationZ);
-	}
-	
-
-	// override
-	virtual void draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags);
-	virtual void setOpacity(GLubyte opacity);
-	
-	// original functions
-	void changeShaderProgram(bool useCustomShaderProgram);
-	bool isCustomShaderProgramEnabled() const;
-	void setColorBlendFunc(int colorBlendFuncNo);
-	cocos2d::V3F_C4B_T2F_Quad& getAttributeRef();
-	void sethasPremultipliedAlpha(int PremultipliedAlpha);
-
-public:
-	// override
-    virtual const cocos2d::Mat4& getNodeToParentTransform() const;
-};
-
-
-
-
 
 /**
  * Player
@@ -1295,6 +1099,8 @@ Player::Player(void)
 
 	, _userDataCallback(nullptr)
 	, _playEndCallback(nullptr)
+
+	, _effectSpriteCount(0)
 {
 	int i;
 	for (i = 0; i < PART_VISIBLE_MAX; i++)
@@ -1709,11 +1515,12 @@ void Player::allocParts(int numParts, bool useCustomShaderProgram)
 		float globalZOrder = getGlobalZOrder();
 		for (auto i = 0; i < EFFECTSPRTE_MAX; i++)
 		{
-			Sprite* sprite = Sprite::create();
+			CustomSprite* sprite = CustomSprite::create();
 			if (globalZOrder != 0.0f)
 			{
 				sprite->setGlobalZOrder(globalZOrder);
 			}
+			sprite->_parent = nullptr;
 
 			_effectSprite.pushBack(sprite);
 			addChild(sprite);
@@ -1810,6 +1617,10 @@ void Player::setPartsParentage()
 						behavior.refCell.texture = cellRef->texture;
 						behavior.refCell.texname = cellRef->texname;
 						behavior.refCell.rect = cellRef->rect;
+						behavior.refCell.cellIndex = behavior.CellIndex;
+						std::string name = static_cast<const char*>(ptr(cellRef->cell->name));
+						behavior.refCell.cellName = name;
+
 					}
 //					behavior.CellName;
 //					behavior.CellMapName;
@@ -2052,9 +1863,9 @@ void Player::setPartsParentage()
 				//エフェクトクラスにパラメータを設定する
 				SsEffectRenderer* er = new SsEffectRenderer();
 				er->setParentAnimeState(&sprite->partState);
-//				er->setCellmapManager(this->curCellMapManager);
 				er->setEffectData(effectmodel);
 				er->setEffectSprite(&_effectSprite);	//エフェクトクラスに渡す都合上publicにしておく
+				er->setEffectSpriteCount(&_effectSpriteCount);	//エフェクトクラスに渡す都合上publicにしておく
 				er->reload();
 				er->stop();
 				sprite->refEffect = er;
@@ -3096,40 +2907,6 @@ void Player::setFrame(int frameNo)
 			//インスタンス用SSPlayerに再生フレームを設定する
 			sprite->_ssplayer->setFrameNo(_time);
 		}
-
-		//エフェクトのアップデート
-		if (sprite->refEffect)
-		{
-			if (isVisibled == false)
-			{
-				sprite->refEffect->stop();
-				sprite->refEffect->reload();
-			}
-			else{
-				//if ( hideTriger )
-				{
-					//パーツのステータスの更新
-					sprite->partState.alpha = opacity / 255.0f;
-					int matindex = 0;
-					for (matindex = 0; matindex < 16; matindex++)
-					{
-						sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
-					}
-					sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
-
-					//エフェクトアップデート
-					sprite->refEffect->setSeed(rand() % 31);
-
-//					effectRender->setAnimeFrameOffset( nowtime );
-					sprite->refEffect->setLoop(false);
-					sprite->refEffect->play();
-					float fdt = cocos2d::Director::getInstance()->getAnimationInterval();
-					sprite->refEffect->update(fdt);
-					sprite->refEffect->draw();
-				}
-			}
-		}
-
 	}
 
 
@@ -3204,7 +2981,70 @@ void Player::setFrame(int frameNo)
 			sprite->setAdditionalTransform(nullptr);
 		}
 	}
-	
+	// エフェクトのアップデート
+	//スプライトをすべて非表示にする
+	int i = 0;
+	for (i = 0; i < _effectSprite.size(); i++)
+	{
+		CustomSprite *sp = _effectSprite.at(i);
+		sp->setVisible(false);
+	}
+	_effectSpriteCount = 0;
+	for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
+	{
+		const PartData* partData = &parts[partIndex];
+		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
+		//エフェクトのアップデート
+		if (sprite->refEffect)
+		{
+			if (sprite->_state.isVisibled == false)
+			{
+				sprite->refEffect->stop();
+				sprite->refEffect->reload();
+			}
+			else{
+				//パーツのステータスの更新
+				sprite->partState.alpha = sprite->_state.opacity / 255.0f;
+				int matindex = 0;
+				for (matindex = 0; matindex < 16; matindex++)
+				{
+					sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
+				}
+				sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
+
+				//エフェクトアップデート
+				sprite->refEffect->setSeed(rand() % 31);
+
+				if ((_isPausing == true) || (_isPlaying == false))
+				{
+					sprite->refEffect->pause();
+/*
+					//今の再生時間から位置を設定する
+					float time = frameNo;
+					float fdt = time * (1.0f / _animefps);
+					fdt = fdt / (1.0f / sprite->refEffect->getEffectData()->fps);						//v1.0.8	独立動作時は親アニメのfpsを使用する
+
+//					sprite->refEffect->stop();
+					sprite->refEffect->reload();
+					sprite->refEffect->setLoop(false);
+					sprite->refEffect->play();
+					sprite->refEffect->update(fdt); //先頭から今のフレーム
+*/
+				}
+				else
+				{
+					float fdt = cocos2d::Director::getInstance()->getAnimationInterval();
+					fdt = fdt / (1.0f / sprite->refEffect->getEffectData()->fps);						//v1.0.8	独立動作時は親アニメのfpsを使用する
+
+					sprite->refEffect->setLoop(false);
+					sprite->refEffect->play();
+					sprite->refEffect->update(fdt); //前回との差分フレーム
+					sprite->refEffect->draw();
+				}
+			}
+		}
+	}
+
 }
 
 //ユーザーデータの取得
@@ -3571,6 +3411,15 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 
 }
 #endif
+
+
+
+
+
+
+
+
+
 
 
 };

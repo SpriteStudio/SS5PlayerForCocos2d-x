@@ -41,9 +41,18 @@ Cocos2d-X Ver3.7に対応しています。
 
 #include "cocos2d.h"
 #include "SS5PlayerData.h"
-#include "./Common/Animator/ssplayer_effect.h"
-#include "./Common/Animator/ssplayer_PartState.h"
+
+//エフェクト関連
+#include "./Common/loader/ssloader.h"
+#include "./Common/Animator/ssplayer_macro.h"
+#include "./Common/Animator/ssplayer_matrix.h"
+#include "./Common/Animator/ssplayer_render.h"
+#include "./Common/Animator/ssplayer_effectfunction.h"
 #include "./Common/Animator/ssplayer_cellmap.h"
+#include "./Common/Animator/ssplayer_PartState.h"
+#include "./Common/Animator/MersenneTwister.h"
+
+
 
 namespace ss
 {
@@ -54,6 +63,202 @@ class AnimeCache;
 class AnimeRef;
 struct ResourceSet;
 struct ProjectData;
+class Player;
+
+
+/**
+* State
+*/
+struct State
+{
+	int flags;						/// このフレームで更新が行われるステータスのフラグ
+	int cellIndex;					/// パーツに割り当てられたセルの番号
+	float x;						/// SS5アトリビュート：X座標
+	float y;						/// SS5アトリビュート：Y座標
+	float z;						/// SS5アトリビュート：Z座標
+	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
+	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
+	float rotationX;				/// X回転（親子関係計算済）
+	float rotationY;				/// Y回転（親子関係計算済）
+	float rotationZ;				/// Z回転（親子関係計算済）
+	float scaleX;					/// Xスケール（親子関係計算済）
+	float scaleY;					/// Yスケール（親子関係計算済）
+	int opacity;					/// 不透明度（0～255）（親子関係計算済）
+	float size_X;					/// SS5アトリビュート：Xサイズ
+	float size_Y;					/// SS5アトリビュート：Xサイズ
+	float uv_move_X;				/// SS5アトリビュート：UV X移動
+	float uv_move_Y;				/// SS5アトリビュート：UV Y移動
+	float uv_rotation;				/// SS5アトリビュート：UV 回転
+	float uv_scale_X;				/// SS5アトリビュート：UV Xスケール
+	float uv_scale_Y;				/// SS5アトリビュート：UV Yスケール
+	float boundingRadius;			/// SS5アトリビュート：当たり半径
+	int colorBlendFunc;				/// SS5アトリビュート：カラーブレンドのブレンド方法
+	int colorBlendType;				/// SS5アトリビュート：カラーブレンドの単色か頂点カラーか。
+	bool flipX;						/// 横反転（親子関係計算済）
+	bool flipY;						/// 縦反転（親子関係計算済）
+	bool isVisibled;				/// 非表示（親子関係計算済）
+	float instancerotationX;		/// インスタンスパーツに設定されたX回転
+	float instancerotationY;		/// インスタンスパーツに設定されたY回転
+	float instancerotationZ;		/// インスタンスパーツに設定されたZ回転
+
+	void init()
+	{
+		flags = 0;
+		cellIndex = 0;
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+		pivotX = 0.0f;
+		pivotY = 0.0f;
+		rotationX = 0.0f;
+		rotationY = 0.0f;
+		rotationZ = 0.0f;
+		scaleX = 1.0f;
+		scaleY = 1.0f;
+		opacity = 255;
+		size_X = 1.0f;
+		size_Y = 1.0f;
+		uv_move_X = 0.0f;
+		uv_move_Y = 0.0f;
+		uv_rotation = 0.0f;
+		uv_scale_X = 1.0f;
+		uv_scale_Y = 1.0f;
+		boundingRadius = 0.0f;
+		colorBlendFunc = 0;
+		colorBlendType = 0;
+		flipX = false;
+		flipY = false;
+		isVisibled = false;
+		instancerotationX = 0.0f;
+		instancerotationY = 0.0f;
+		instancerotationZ = 0.0f;
+	}
+
+	State() { init(); }
+};
+
+
+/**
+* CustomSprite
+*/
+class CustomSprite : public cocos2d::Sprite
+{
+private:
+	static unsigned int ssSelectorLocation;
+	static unsigned int	ssAlphaLocation;
+	static unsigned int	sshasPremultipliedAlpha;
+
+	static cocos2d::GLProgram* getCustomShaderProgram();
+
+private:
+	cocos2d::GLProgram*	_defaultShaderProgram;
+	bool				_useCustomShaderProgram;
+	float				_opacity;
+	int					_hasPremultipliedAlpha;
+	int					_colorBlendFuncNo;
+
+public:
+	cocos2d::Mat4		_mat;
+	State				_state;
+	bool				_isStateChanged;
+	CustomSprite*		_parent;
+	ss::Player*			_ssplayer;
+	float				_liveFrame;
+
+	//エフェクト用パラメータ
+	SsEffectRenderer*	refEffect;
+	SsPartState			partState;
+
+public:
+	CustomSprite();
+	virtual ~CustomSprite();
+
+	static CustomSprite* create();
+
+	void initState()
+	{
+		_mat = cocos2d::Mat4::IDENTITY;
+		_state.init();
+		_isStateChanged = true;
+	}
+
+	void setStateValue(float& ref, float value)
+	{
+		if (ref != value)
+		{
+			ref = value;
+			_isStateChanged = true;
+		}
+	}
+	void setStateValue(int& ref, int value)
+	{
+		if (ref != value)
+		{
+			ref = value;
+			_isStateChanged = true;
+		}
+	}
+
+	void setStateValue(bool& ref, bool value)
+	{
+		if (ref != value)
+		{
+			ref = value;
+			_isStateChanged = true;
+		}
+	}
+
+	void setState(const State& state)
+	{
+		setStateValue(_state.flags, state.flags);
+		setStateValue(_state.cellIndex, state.cellIndex);
+		setStateValue(_state.x, state.x);
+		setStateValue(_state.y, state.y);
+		setStateValue(_state.z, state.z);
+		setStateValue(_state.pivotX, state.pivotX);
+		setStateValue(_state.pivotY, state.pivotY);
+		setStateValue(_state.rotationX, state.rotationX);
+		setStateValue(_state.rotationY, state.rotationY);
+		setStateValue(_state.rotationZ, state.rotationZ);
+		setStateValue(_state.scaleX, state.scaleX);
+		setStateValue(_state.scaleY, state.scaleY);
+		setStateValue(_state.opacity, state.opacity);
+		setStateValue(_state.size_X, state.size_X);
+		setStateValue(_state.size_Y, state.size_Y);
+		setStateValue(_state.uv_move_X, state.uv_move_X);
+		setStateValue(_state.uv_move_Y, state.uv_move_Y);
+		setStateValue(_state.uv_rotation, state.uv_rotation);
+		setStateValue(_state.uv_scale_X, state.uv_scale_X);
+		setStateValue(_state.uv_scale_Y, state.uv_scale_Y);
+		setStateValue(_state.boundingRadius, state.boundingRadius);
+		setStateValue(_state.isVisibled, state.isVisibled);
+		setStateValue(_state.flipX, state.flipX);
+		setStateValue(_state.flipY, state.flipY);
+		setStateValue(_state.colorBlendFunc, state.colorBlendFunc);
+		setStateValue(_state.colorBlendType, state.colorBlendType);
+
+		setStateValue(_state.instancerotationX, state.instancerotationX);
+		setStateValue(_state.instancerotationY, state.instancerotationY);
+		setStateValue(_state.instancerotationZ, state.instancerotationZ);
+	}
+
+
+	// override
+	virtual void draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags);
+	virtual void setOpacity(GLubyte opacity);
+
+	// original functions
+	void changeShaderProgram(bool useCustomShaderProgram);
+	bool isCustomShaderProgramEnabled() const;
+	void setColorBlendFunc(int colorBlendFuncNo);
+	cocos2d::V3F_C4B_T2F_Quad& getAttributeRef();
+	void sethasPremultipliedAlpha(int PremultipliedAlpha);
+
+public:
+	// override
+	virtual const cocos2d::Mat4& getNodeToParentTransform() const;
+};
+
 
 /**
  * ResourceManager
@@ -355,7 +560,7 @@ enum BlendType
 	BLEND_ADD,		///< 2 加算
 	BLEND_SUB		///< 3 減算
 };
-
+/*
 /// テクスチャラップモード
 namespace SsTexWrapMode
 {
@@ -380,7 +585,7 @@ namespace SsTexFilterMode
 		num
 	};
 };
-
+*/
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)
 //プレイヤーで扱えるアニメに含まれるパーツの最大数
@@ -738,7 +943,8 @@ protected:
 
 public:
 	//エフェクト用データ
-	cocos2d::Vector<cocos2d::Sprite*>	_effectSprite;	//エフェクトクラスに渡す都合上publicにしておく
+	cocos2d::Vector<CustomSprite*>	_effectSprite;		//エフェクトクラスに渡す都合上publicにしておく
+	int								_effectSpriteCount;	//エフェクトクラスに渡す都合上publicにしておく
 
 protected:
 	ResourceManager*	_resman;
@@ -777,6 +983,8 @@ protected:
 	PlayEndCallback		_playEndCallback;
 	ErrorCallback		_ErrorCallback;
 };
+
+
 
 
 

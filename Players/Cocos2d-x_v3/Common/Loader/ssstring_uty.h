@@ -10,6 +10,9 @@
 #include <fstream>
 #include <iterator>
 
+namespace ss
+{
+
 /*
  * @brief     文字列を指定のkeyで分割して返します。
  *
@@ -49,5 +52,5 @@ std::string path2file(const std::string &path);
 */
 std::string getFullPath( const std::string& basePath , const std::string &relPath);
 
-
+};
 #endif

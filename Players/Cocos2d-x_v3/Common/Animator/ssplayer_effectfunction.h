@@ -3,6 +3,8 @@
 
 #include "ssplayer_effect.h"
 
+namespace ss
+{
 
 class	SsEffectFunctionExecuter
 {
@@ -17,7 +19,7 @@ public:
 };
 
 
-
+};
 
 
 

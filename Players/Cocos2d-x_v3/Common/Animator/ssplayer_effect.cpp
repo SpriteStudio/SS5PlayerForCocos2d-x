@@ -10,9 +10,12 @@
 #include "ssplayer_render.h"
 #include "ssplayer_effectfunction.h"
 
+namespace ss
+{
 
 
 class SsEffectRenderParticle;
+class CustomSprite;
 
 
 static  int seed_table[] =
@@ -462,7 +465,7 @@ void 	SsEffectRenderParticle::updateForce(float delta)
 //------------------------------------------------------------------------------
 //
 //------------------------------------------------------------------------------
-void	SsEffectRenderParticle::draw(SsEffectRenderer* render, int spriteInedex)
+void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 {
 
 	if ( this->parentEmitter == NULL  )return;
@@ -488,22 +491,35 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render, int spriteInedex)
 	SsFColor fcolor;
 	fcolor.fromARGB( _color.toARGB() );
 	fcolor.a = fcolor.a * this->alpha;
+	if (fcolor.a == 0.0f)
+	{
+//		return;
+	}
 
 	//cocos2d-xでの描画
-	cocos2d::Sprite *sprite = render->_effectSprite->at(spriteInedex);
-	sprite->setVisible(true);			//表示
+	CustomSprite *sprite = render->_effectSprite->at(*render->_effectSpriteCount);
+	*render->_effectSpriteCount = (*render->_effectSpriteCount) + 1;
+	if (*render->_effectSpriteCount >= render->_effectSprite->size())
+	{
+		*render->_effectSpriteCount = render->_effectSprite->size() - 1;
+	}
 
+
+	sprite->setVisible(true);			//表示
+/*
+	//ポジション
+	float x = ((*render->_effectSpriteCount % 20) * 40.0f) - 400;
+	float y = ((*render->_effectSpriteCount / 20) * 40.0f) - 400;
+	sprite->setPosition(cocos2d::Vec2(x,y));
+*/
+	sprite->setPosition(cocos2d::Vec2(_position.x, _position.y));
+	sprite->setScale(_size.x, _size.y);
+	cocos2d::Vec3 rot(0, 0, RadianToDegree(_rotation) + direction);
+	sprite->setRotation3D(rot);
+
+	//テクスチャ、カラーブレンド
 	sprite->setTexture(dispCell->refCell.texture);
 	cocos2d::Rect rect = dispCell->refCell.rect;
-	if (render->_isContentScaleFactorAuto == true)
-	{
-		//ContentScaleFactor対応
-		float cScale = cocos2d::Director::getInstance()->getContentScaleFactor();
-		rect.origin.x /= cScale;
-		rect.origin.y /= cScale;
-		rect.size.width /= cScale;
-		rect.size.height /= cScale;
-	}
 	sprite->setTextureRect(rect);
 	cocos2d::BlendFunc blendFunc = sprite->getBlendFunc();
 	switch (dispCell->blendType)		//ブレンド表示
@@ -525,9 +541,41 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render, int spriteInedex)
 	float pivotX = dispCell->refCell.pivot_X + 0.5f;
 	float pivotY = dispCell->refCell.pivot_Y + 0.5f;
 	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
-	render->_isContentScaleFactorAuto;
 
-
+	cocos2d::V3F_C4B_T2F_Quad& quad = sprite->getAttributeRef();
+	if (render->_isContentScaleFactorAuto == true)
+	{
+		//ContentScaleFactor対応
+		float cScale = cocos2d::Director::getInstance()->getContentScaleFactor();
+		quad.tl.texCoords.u /= cScale;
+		quad.tr.texCoords.u /= cScale;
+		quad.bl.texCoords.u /= cScale;
+		quad.br.texCoords.u /= cScale;
+		quad.tl.texCoords.v /= cScale;
+		quad.tr.texCoords.v /= cScale;
+		quad.bl.texCoords.v /= cScale;
+		quad.br.texCoords.v /= cScale;
+	}
+/*
+	//カラー変更
+	GLubyte r = (GLubyte)(fcolor.r * 255.0f);
+	GLubyte g = (GLubyte)(fcolor.g * 255.0f);
+	GLubyte b = (GLubyte)(fcolor.b * 255.0f);
+	GLubyte a = (GLubyte)(fcolor.a * 255.0f);
+	cocos2d::Color4B color4 = { r, g, b, a };
+	quad.tl.colors =
+	quad.tr.colors =
+	quad.bl.colors =
+	quad.br.colors = color4;
+*/
+	//マトリクス設定
+	int i = 0;
+	for (i = 0; i < 16; i++)
+	{ 
+		sprite->_mat.m[i] = matrix[i];
+	}
+	// 行列を再計算させる
+//	sprite->setAdditionalTransform(nullptr);
 
 	//うまくcocosとつなげる必要あり
 /*
@@ -639,16 +687,7 @@ void	SsEffectRenderer::update(float delta)
 void	SsEffectRenderer::draw()
 {
 //	SsCurrentRenderer::getRender()->renderSetup();					
-
-	//スプライトをすべて非表示にする
-	int i = 0;
-	for (i = 0; i < _effectSprite->size(); i++)
-	{
-		cocos2d::Sprite *sp = _effectSprite->at(i);
-		sp->setVisible(false);
-	}
 	
-	int spriteInedex = 0;
 	foreach( std::list<SsEffectDrawBatch*> , drawBatchList , e )
 	{
 		//セットアップ
@@ -673,12 +712,7 @@ void	SsEffectRenderer::draw()
 			if ( (*e2) )
 			{
 				if ( (*e2)->m_isLive && (*e2)->_life > 0.0f ){
-					(*e2)->draw(this, spriteInedex);
-					spriteInedex++;
-					if (spriteInedex >= _effectSprite->size())
-					{
-						spriteInedex = _effectSprite->size() - 1;
-					}
+					(*e2)->draw(this);
 				}
 			}
 		}
@@ -808,6 +842,6 @@ void	SsEffectRenderer::setLoop(bool flag)
 
 
 
-
+};
 
 

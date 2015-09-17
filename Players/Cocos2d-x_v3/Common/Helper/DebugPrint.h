@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace ss
+{
 
 void DEBUG_PRINTF( const char* strFormat, ...   );
 
@@ -21,6 +23,6 @@ THROW_ERROR_MESSAGE_MAIN( str , __FILE__ , __LINE__ );\
 
 void	THROW_ERROR_MESSAGE_MAIN( std::string str , char* fname , size_t line );
 
-
+};
 
 #endif
