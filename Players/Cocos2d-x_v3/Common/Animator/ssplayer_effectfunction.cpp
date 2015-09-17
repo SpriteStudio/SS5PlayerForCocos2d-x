@@ -2,7 +2,7 @@
 #include <cstdlib>
 
 #include "../loader/ssloader.h"
-#include "ssplayer_animedecode.h"
+//#include "ssplayer_animedecode.h"
 #include "ssplayer_effect.h"
 #include "ssplayer_macro.h"
 #include "ssplayer_matrix.h"

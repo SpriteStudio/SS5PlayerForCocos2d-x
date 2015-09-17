@@ -2,7 +2,7 @@
 
 
 
-
+/*
 SsEffectElementBase*	SsEffectBehavior::Factory(const char* name , XMLElement* e )
 {
 	SsEffectElementBase * ret = 0;
@@ -58,3 +58,4 @@ void	SsEffectBehavior::EffectElementLoader(ISsXmlArchiver* ar)
 
 }
 
+*/

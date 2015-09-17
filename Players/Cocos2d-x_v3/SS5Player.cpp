@@ -1703,6 +1703,23 @@ void Player::allocParts(int numParts, bool useCustomShaderProgram)
 		}
 	}
 
+	//エフェクト用パーツ生成
+	if (_effectSprite.size() == 0)
+	{
+		float globalZOrder = getGlobalZOrder();
+		for (auto i = 0; i < EFFECTSPRTE_MAX; i++)
+		{
+			Sprite* sprite = Sprite::create();
+			if (globalZOrder != 0.0f)
+			{
+				sprite->setGlobalZOrder(globalZOrder);
+			}
+
+			_effectSprite.pushBack(sprite);
+			addChild(sprite);
+		}
+	}
+
 	// 全て一旦非表示にする
 	for (auto child : getChildren())
 	{
@@ -1785,7 +1802,15 @@ void Player::setPartsParentage()
 					SsEffectBehavior behavior;
 					//インデックスだけ入れとく
 					behavior.CellIndex = nodeRef->effectNode->cellIndex;
-//					behavior.refCell;
+					CellRef* cellRef = behavior.CellIndex >= 0 ? _currentRs->cellCache->getReference(behavior.CellIndex) : nullptr;
+					if (cellRef)
+					{
+						behavior.refCell.pivot_X = cellRef->cell->pivot_X;
+						behavior.refCell.pivot_Y = cellRef->cell->pivot_Y;
+						behavior.refCell.texture = cellRef->texture;
+						behavior.refCell.texname = cellRef->texname;
+						behavior.refCell.rect = cellRef->rect;
+					}
 //					behavior.CellName;
 //					behavior.CellMapName;
 					behavior.blendType = (SsRenderBlendType::_enum)nodeRef->effectNode->blendType;
@@ -2029,6 +2054,7 @@ void Player::setPartsParentage()
 				er->setParentAnimeState(&sprite->partState);
 //				er->setCellmapManager(this->curCellMapManager);
 				er->setEffectData(effectmodel);
+				er->setEffectSprite(&_effectSprite);	//エフェクトクラスに渡す都合上publicにしておく
 				er->reload();
 				er->stop();
 				sprite->refEffect = er;
@@ -3089,6 +3115,7 @@ void Player::setFrame(int frameNo)
 					{
 						sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
 					}
+					sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
 
 					//エフェクトアップデート
 					sprite->refEffect->setSeed(rand() % 31);

@@ -2,7 +2,7 @@
 #define __SSLOADER_SSEE__
 
 #include "sstypes.h"
-#include "ssarchiver.h"
+//#include "ssarchiver.h"
 
 #include "SsEffectBehavior.h"
 
@@ -91,7 +91,7 @@ public:
 		  type(SsEffectNodeType::invalid)
 	{}
 	~SsEffectNode(){}
-
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE(arrayIndex);
@@ -100,7 +100,7 @@ public:
 		SSAR_DECLARE(visible);	
 		SSAR_STRUCT_DECLARE(behavior);	
 	}
-
+*/
 
 	SsEffectNodeType::_enum	GetType(){ return type; }
 
@@ -137,7 +137,7 @@ public:
     //アクセス
 	SsEffectNode* GetRoot(){ return root;}
 
-
+/*
 	//シリアライザ
 	SSSERIALIZE_BLOCK
 	{
@@ -162,8 +162,8 @@ public:
 		}
 
 	}
-
-	void	EffectNodeLoader(ISsXmlArchiver* ar);
+*/
+//	void	EffectNodeLoader(ISsXmlArchiver* ar);
 
 
 };
@@ -177,14 +177,14 @@ public:
 
 	SsEffectFile(){}
 	virtual ~SsEffectFile(){}
-
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE(name);
 		SSAR_STRUCT_DECLARE( effectData );
 		effectData.effectName = name;
 	}
-
+*/
 };
 
 

@@ -43,6 +43,7 @@ Cocos2d-X Ver3.7に対応しています。
 #include "SS5PlayerData.h"
 #include "./Common/Animator/ssplayer_effect.h"
 #include "./Common/Animator/ssplayer_PartState.h"
+#include "./Common/Animator/ssplayer_cellmap.h"
 
 namespace ss
 {
@@ -51,7 +52,7 @@ class CellCache;
 class CellRef;
 class AnimeCache;
 class AnimeRef;
-class ResourceSet;
+struct ResourceSet;
 struct ProjectData;
 
 /**
@@ -384,6 +385,9 @@ namespace SsTexFilterMode
 #define DOT (10.0f)
 //プレイヤーで扱えるアニメに含まれるパーツの最大数
 #define PART_VISIBLE_MAX (1024)
+//プレイヤーが保持するエフェクトスプライト数
+#define EFFECTSPRTE_MAX (512)
+
 /**
  * Player
  */
@@ -732,6 +736,10 @@ protected:
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
 
+public:
+	//エフェクト用データ
+	cocos2d::Vector<cocos2d::Sprite*>	_effectSprite;	//エフェクトクラスに渡す都合上publicにしておく
+
 protected:
 	ResourceManager*	_resman;
 	ResourceSet*		_currentRs;
@@ -768,7 +776,6 @@ protected:
 	UserData			_userData;
 	PlayEndCallback		_playEndCallback;
 	ErrorCallback		_ErrorCallback;
-
 };
 
 

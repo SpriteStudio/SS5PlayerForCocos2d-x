@@ -2,6 +2,7 @@
 #define __SSEFFECTBEHAVIOR__
 
 #include "SsEffectElement.h"
+#include "ssplayer_cellmap.h"
 #include "sstypes.h"
 #include "ssvalue.h"
 
@@ -15,15 +16,15 @@ public:
 
 public:
 	int								CellIndex;	//プレイヤー専用に追加
-    SsCell*							refCell;
+    SsCell							refCell;
 	SsString						CellName;
 	SsString						CellMapName;
 	SsRenderBlendType::_enum		blendType;
 
 public:
-	SsEffectBehavior() : refCell(0),blendType(SsRenderBlendType::invalid) {}
+	SsEffectBehavior() : blendType(SsRenderBlendType::invalid) {}
 	virtual ~SsEffectBehavior(){}
-
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE(CellName);
@@ -33,10 +34,10 @@ public:
 		if ( ar->getxml() )
 			EffectElementLoader( ar );
 	}
-
 	SsEffectElementBase*	Factory(const char* name , XMLElement* e );
+*/
 
-	void	EffectElementLoader(ISsXmlArchiver* ar);
+//	void	EffectElementLoader(ISsXmlArchiver* ar);
 
 /*
 	//エフェクトデータのセットアップ

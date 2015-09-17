@@ -3,7 +3,7 @@
 
 #include "../loader/ssloader.h"
 
-#include "ssplayer_animedecode.h"
+//#include "ssplayer_animedecode.h"
 #include "ssplayer_effect.h"
 #include "ssplayer_macro.h"
 #include "ssplayer_matrix.h"
@@ -116,8 +116,9 @@ SsEffectRenderAtom* SsEffectRenderer::CreateAtom( unsigned int seed , SsEffectRe
 				);
 		}
 */
-		//テクスチャの管理はプレイヤーで行うのでインデックスのみにする
-		p->dispCell.CellIndex = p->data->behavior.CellIndex;
+		//表示に必要な情報のコピー
+		p->dispCell.refCell = p->data->behavior.refCell;
+		p->dispCell.blendType = p->data->behavior.blendType;
 		updatelist.push_back( p );
 		createlist.push_back( p );
 		drawBatchList.push_back( bl );
@@ -282,7 +283,6 @@ void	SsEffectRenderEmitter::update(float delta)
 		this->myBatchList->priority = this->drawPriority;
 		this->myBatchList->dispCell = &this->dispCell;
 		this->myBatchList->blendType = this->data->GetMyBehavior()->blendType;
-
 	}
 
 }
@@ -462,13 +462,12 @@ void 	SsEffectRenderParticle::updateForce(float delta)
 //------------------------------------------------------------------------------
 //
 //------------------------------------------------------------------------------
-void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
+void	SsEffectRenderParticle::draw(SsEffectRenderer* render, int spriteInedex)
 {
 
 	if ( this->parentEmitter == NULL  )return;
 	if ( refBehavior == NULL ) return;
-	if ( dispCell == NULL ) return ;
-	if ( dispCell->CellIndex == -1 ) return;
+	if (dispCell->refCell.texture == nullptr) return;
 
 	float		matrix[4 * 4];	///< 行列
 	IdentityMatrix( matrix );
@@ -489,6 +488,46 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	SsFColor fcolor;
 	fcolor.fromARGB( _color.toARGB() );
 	fcolor.a = fcolor.a * this->alpha;
+
+	//cocos2d-xでの描画
+	cocos2d::Sprite *sprite = render->_effectSprite->at(spriteInedex);
+	sprite->setVisible(true);			//表示
+
+	sprite->setTexture(dispCell->refCell.texture);
+	cocos2d::Rect rect = dispCell->refCell.rect;
+	if (render->_isContentScaleFactorAuto == true)
+	{
+		//ContentScaleFactor対応
+		float cScale = cocos2d::Director::getInstance()->getContentScaleFactor();
+		rect.origin.x /= cScale;
+		rect.origin.y /= cScale;
+		rect.size.width /= cScale;
+		rect.size.height /= cScale;
+	}
+	sprite->setTextureRect(rect);
+	cocos2d::BlendFunc blendFunc = sprite->getBlendFunc();
+	switch (dispCell->blendType)		//ブレンド表示
+	{
+	case SsRenderBlendType::_enum::Mix:
+		//通常
+		blendFunc.src = GL_SRC_ALPHA;
+		blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+		break;
+	case SsRenderBlendType::_enum::Add:
+		//加算
+		blendFunc.src = GL_SRC_ALPHA;
+		blendFunc.dst = GL_ONE;
+		break;
+	}
+	sprite->setBlendFunc(blendFunc);
+	//プレイヤー側のセルを参照する
+	//原点
+	float pivotX = dispCell->refCell.pivot_X + 0.5f;
+	float pivotY = dispCell->refCell.pivot_Y + 0.5f;
+	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
+	render->_isContentScaleFactorAuto;
+
+
 
 	//うまくcocosとつなげる必要あり
 /*
@@ -601,11 +640,21 @@ void	SsEffectRenderer::draw()
 {
 //	SsCurrentRenderer::getRender()->renderSetup();					
 
+	//スプライトをすべて非表示にする
+	int i = 0;
+	for (i = 0; i < _effectSprite->size(); i++)
+	{
+		cocos2d::Sprite *sp = _effectSprite->at(i);
+		sp->setVisible(false);
+	}
+	
+	int spriteInedex = 0;
 	foreach( std::list<SsEffectDrawBatch*> , drawBatchList , e )
 	{
 		//セットアップ
 		if ( (*e)->dispCell )
 		{
+/*
 			switch( (*e)->blendType )
 			{
 				case SsRenderBlendType::Mix:
@@ -616,6 +665,7 @@ void	SsEffectRenderer::draw()
 					break;
 			}
 //			SsCurrentRenderer::getRender()->SetTexture( (*e)->dispCell );
+*/
 		}
 
 		foreach( std::list<SsEffectRenderAtom*> , (*e)->drawlist , e2 )
@@ -623,7 +673,12 @@ void	SsEffectRenderer::draw()
 			if ( (*e2) )
 			{
 				if ( (*e2)->m_isLive && (*e2)->_life > 0.0f ){
-					(*e2)->draw(this);
+					(*e2)->draw(this, spriteInedex);
+					spriteInedex++;
+					if (spriteInedex >= _effectSprite->size())
+					{
+						spriteInedex = _effectSprite->size() - 1;
+					}
 				}
 			}
 		}

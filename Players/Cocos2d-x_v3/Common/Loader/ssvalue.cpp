@@ -1,9 +1,9 @@
-#include "ssarchiver.h"
+//#include "ssarchiver.h"
 #include "ssstring_uty.h"
 #include "ssvalue.h"
 
 
-
+/*
 //SsValue用のシリアライザ
 void	SsValueSeriarizer( ISsXmlArchiver* ar , SsValue& v , const std::string key) 
 {
@@ -76,3 +76,4 @@ void	SsValueSeriarizer( ISsXmlArchiver* ar , SsValue& v , const std::string key)
 	//assert(e);
 
 }
+*/

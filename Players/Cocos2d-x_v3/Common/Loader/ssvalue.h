@@ -1,7 +1,8 @@
 #ifndef __SSVALUE__
 #define __SSVALUE__
 
-#include "ssarchiver.h"
+//#include "ssarchiver.h"
+#include "sstypes.h"
 #include "ssstring_uty.h"
 #include <map>
 #include <vector>
@@ -12,10 +13,10 @@ class SsValue;
 typedef	wchar_t		SsChar;
 typedef std::vector<SsValue>		SsArray;
 typedef std::map<SsString,SsValue>	SsHash;
-
+/*
 //SsValue用のシリアライザ
 void	SsValueSeriarizer( ISsXmlArchiver* ar , SsValue& v , const std::string key = "value" );
-
+*/
 
 class SsValue{
 public:
@@ -161,12 +162,12 @@ public:
 
 		return false;
 	}
-
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SsValueSeriarizer( ar , *this ,"" );	
 	}
-	
+*/	
 };
 
 template <> inline const SsString& SsValue::get<SsString>() const {

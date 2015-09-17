@@ -3,7 +3,7 @@
 
 
 #include "sstypes.h"
-#include "ssarchiver.h"
+//#include "ssarchiver.h"
 
 enum EffectPartType
 {
@@ -48,7 +48,8 @@ class SsCell;
 
 //範囲値クラス
 template<class mytype>
-class VarianceValue : public SsXmlRangeValueConverter
+//class VarianceValue : public SsXmlRangeValueConverter
+class VarianceValue
 {
 private:
 
@@ -164,12 +165,12 @@ public:
 	virtual void UpdateParticle( SsEffectRenderParticle* particle ){}
 #endif
 	//シリアライザ
-
+/*
 	virtual SSSERIALIZE_BLOCK
 	{
 
 	}
-
+*/
 };
 
 
@@ -210,6 +211,7 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle ){}
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( maximumParticle );
@@ -222,7 +224,7 @@ public:
 		SSAR_DECLARE( attimeCreate );
 		SSAR_DECLARE( priority );
 	}
-
+*/
 };
 
 
@@ -244,13 +246,13 @@ public:
 	//各部で実装する
 	virtual void InitializeEmmiter( SsEffectRenderEmitter* emmiter );
 */
-
+/*
 	//シリアライザ
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Seed );
 	}
-
+*/
 };
 
 //--------------------------------------------------------------------------------------
@@ -276,11 +278,12 @@ public:
 
 	virtual void UpdateEndEmmiter( SsEffectRenderEmitter* emmiter );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( DelayTime );
 	}
-
+*/
 
 };
 
@@ -305,11 +308,12 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Gravity );
 	}
-
+*/
 };
 
 //--------------------------------------------------------------------------------------
@@ -331,12 +335,13 @@ public:
 	virtual    SsEffectElementBase*  new_(){ return new ParticleElementPosition(); }
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( OffsetX );
 		SSAR_DECLARE( OffsetY );
 	}
-
+*/
 
 };
 
@@ -392,13 +397,14 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	//シリアライザ
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Rotation );
 		SSAR_DECLARE( RotationAdd );
 	}
-
+*/
 
 };
 
@@ -423,12 +429,13 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
  	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( RotationFactor );
 		SSAR_DECLARE( EndLifeTimePer );
 	}
-
+*/
 
 };
 
@@ -450,10 +457,12 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
  	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Speed );
 	}
+*/
 };
 
 
@@ -476,11 +485,12 @@ public:
 
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Acceleration );
 	}
-
+*/
 };
 
 
@@ -502,10 +512,12 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Color );
 	}
+*/
 };
 
 //--------------------------------------------------------------------------------------
@@ -526,11 +538,12 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Color );
 	}
-
+*/
 };
 
 
@@ -553,11 +566,12 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( disprange );
 	}
-
+*/
 
 };
 
@@ -583,13 +597,14 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( SizeX );
 		SSAR_DECLARE( SizeY );
 		SSAR_DECLARE( ScaleFactor );
 	}
-
+*/
 
 };
 
@@ -617,13 +632,14 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( SizeX );
 		SSAR_DECLARE( SizeY );
 		SSAR_DECLARE( ScaleFactor );
 	}
-
+*/
 };
 
 //--------------------------------------------------------------------------------------
@@ -653,13 +669,13 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle );
 */
-
+/*
 	SSSERIALIZE_BLOCK
 	{
 		SSAR_DECLARE( Position );
 		SSAR_DECLARE( Power );
 	}
-
+*/
 };
 
 
@@ -686,9 +702,11 @@ public:
 	virtual void InitializeParticle( SsEffectRenderEmitter* e , SsEffectRenderParticle* particle );
 	virtual void UpdateParticle( SsEffectRenderParticle* particle ){}
 */
+/*
 	SSSERIALIZE_BLOCK
 	{
 	}
+*/
 };
 
 

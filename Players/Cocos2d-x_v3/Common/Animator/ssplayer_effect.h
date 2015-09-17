@@ -1,10 +1,12 @@
 #ifndef __SSPLAYER_EFFECT__
 #define __SSPLAYER_EFFECT__
 
+#include "cocos2d.h"
 #include "../loader/ssloader.h"
 #include "MersenneTwister.h"
 #include "ssplayer_cellmap.h"
-
+#include "ssplayer_PartState.h"
+#include "../../SS5Player.h"
 
 class SsEffectModel;
 class SsRenderEffectBase;
@@ -12,11 +14,9 @@ class SsEffectNode;
 
 struct SsPartState;
 class SsEffectRenderAtom;
-class SsCell;
 
 class SsEffectBehavior;
 class SsEffectRenderer;
-
 
 #define PFMEM_TEST ( 1 )
 
@@ -115,7 +115,7 @@ public:
 
 
     virtual void	update(float delta){}
-	virtual void	draw(SsEffectRenderer* render){}
+	virtual void	draw(SsEffectRenderer* render, int spriteIndex){}
 
 	virtual void	debugdraw(){}
 
@@ -160,7 +160,7 @@ public:
 	std::list<SsEffectRenderAtom*> drawlist;
 
 
-	SsEffectDrawBatch() : priority(0) , dispCell(0) {}
+	SsEffectDrawBatch() : priority(0), dispCell(0) {}
 	~SsEffectDrawBatch(){}
 
 	void	drawSetting();
@@ -347,7 +347,7 @@ public:
 	virtual bool	genarate( SsEffectRenderer* render );
 
     virtual void	update(float delta);
-	virtual void	draw(SsEffectRenderer* render);
+	virtual void	draw(SsEffectRenderer* render, int spriteInedex);
 
 
 	virtual void	count()
@@ -385,7 +385,7 @@ private:
 
 	SsVector3		layoutPosition;
 
-	SsCellMapList*	curCellMapManager;/// セルマップのリスト（アニメデコーダーからもらう
+//	SsCellMapList*	curCellMapManager;/// セルマップのリスト（アニメデコーダーからもらう
 
 
 #if PFMEM_TEST
@@ -416,6 +416,10 @@ public:
 
     std::list<SsEffectDrawBatch*>  drawBatchList;
 
+	//cocos2d-x用エフェクトスプライト
+	cocos2d::Vector<cocos2d::Sprite*>	*_effectSprite;
+//	cocos2d::Vector<ss::CustomSprite*>	*_effectSprite;
+	bool _isContentScaleFactorAuto;
 
 public:
 	SsEffectRenderer() : effectData(0) , parentState(0) ,mySeed(0) , render_root(0),parentAnimeStartFrame(0) , m_isLoop(false)
@@ -426,6 +430,7 @@ public:
 	,usePreMultiTexture(true)
 	,renderTexture(false)
 	,frameDelta(0)
+	,_isContentScaleFactorAuto(true)
 #endif
 	{}
 
@@ -474,7 +479,11 @@ public:
 
 	SsEffectRenderAtom* CreateAtom( unsigned int seed , SsEffectRenderAtom* parent , SsEffectNode* node );
 
-	void	setCellmapManager( SsCellMapList* plist ) { curCellMapManager = plist; }
+//	void	setCellmapManager( SsCellMapList* plist ) { curCellMapManager = plist; }
+
+	//cocos側のエフェクトスプライトを設定する
+	void setEffectSprite(cocos2d::Vector<cocos2d::Sprite*>	*spriteVec) { _effectSprite = spriteVec; }
+	void setContentScaleEneble(bool eneble){ _isContentScaleFactorAuto = eneble; }
 
 };
 
