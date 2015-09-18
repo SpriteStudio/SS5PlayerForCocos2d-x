@@ -6,6 +6,7 @@
 #include "MersenneTwister.h"
 #include "ssplayer_cellmap.h"
 #include "ssplayer_PartState.h"
+#include "../Helper/DebugPrint.h"
 #include "../../SS5Player.h"
 
 namespace ss
@@ -421,10 +422,10 @@ public:
     std::list<SsEffectDrawBatch*>  drawBatchList;
 
 	//cocos2d-x用エフェクトスプライト
-//	cocos2d::Vector<cocos2d::Sprite*>	*_effectSprite;
-	cocos2d::Vector<CustomSprite*>	*_effectSprite;
+	cocos2d::Vector<CustomSprite*>		*_effectSprite;
 	bool _isContentScaleFactorAuto;
 	int *_effectSpriteCount;
+	CustomSprite						*_parentSprite;
 
 public:
 	SsEffectRenderer() : effectData(0) , parentState(0) ,mySeed(0) , render_root(0),parentAnimeStartFrame(0) , m_isLoop(false)
@@ -436,6 +437,9 @@ public:
 	,renderTexture(false)
 	,frameDelta(0)
 	,_isContentScaleFactorAuto(true)
+	,_effectSpriteCount(0)
+	,_parentSprite(0)
+	,_effectSprite(0)
 #endif
 	{}
 
@@ -458,6 +462,7 @@ public:
 	void	stop();
 	void    pause();
 	void	setLoop(bool flag);
+	bool	getPlayStatus(void);	//追加
 
 	int	getCurrentFPS(){
 		if (effectData)
@@ -490,6 +495,7 @@ public:
 	void setEffectSprite(cocos2d::Vector<CustomSprite*>	*spriteVec) { _effectSprite = spriteVec; }
 	void setEffectSpriteCount(int *buff) { _effectSpriteCount = buff; }
 	void setContentScaleEneble(bool eneble){ _isContentScaleFactorAuto = eneble; }
+	void setParentSprite(CustomSprite* sprite){ _parentSprite = sprite; }
 
 };
 

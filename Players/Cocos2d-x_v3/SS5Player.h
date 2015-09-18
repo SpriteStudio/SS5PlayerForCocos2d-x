@@ -940,6 +940,7 @@ protected:
 	void checkUserData(int frameNo);
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
+	void effectReload(void);
 
 public:
 	//エフェクト用データ

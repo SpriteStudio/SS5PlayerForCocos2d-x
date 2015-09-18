@@ -493,7 +493,7 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	fcolor.a = fcolor.a * this->alpha;
 	if (fcolor.a == 0.0f)
 	{
-//		return;
+		return;
 	}
 
 	//cocos2d-xでの描画
@@ -501,20 +501,27 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	*render->_effectSpriteCount = (*render->_effectSpriteCount) + 1;
 	if (*render->_effectSpriteCount >= render->_effectSprite->size())
 	{
-		*render->_effectSpriteCount = render->_effectSprite->size() - 1;
+		return;	//エフェクト用スプライトの空きがない
 	}
-
-
+	if (render->_parentSprite)
+	{ 
+		render->_parentSprite->addChild(sprite);	//子供にする
+//		int pri = render->_parentSprite->getLocalZOrder();
+//		sprite->setLocalZOrder(pri);	//子供にする
+	}
 	sprite->setVisible(true);			//表示
-/*
+
+
 	//ポジション
+/*
 	float x = ((*render->_effectSpriteCount % 20) * 40.0f) - 400;
 	float y = ((*render->_effectSpriteCount / 20) * 40.0f) - 400;
 	sprite->setPosition(cocos2d::Vec2(x,y));
 */
+
 	sprite->setPosition(cocos2d::Vec2(_position.x, _position.y));
 	sprite->setScale(_size.x, _size.y);
-	cocos2d::Vec3 rot(0, 0, RadianToDegree(_rotation) + direction);
+	cocos2d::Vec3 rot(0, 0, _rotation + RadianToDegree(direction));
 	sprite->setRotation3D(rot);
 
 	//テクスチャ、カラーブレンド
@@ -526,8 +533,16 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	{
 	case SsRenderBlendType::_enum::Mix:
 		//通常
-		blendFunc.src = GL_SRC_ALPHA;
-		blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+		if (!dispCell->refCell.texture->hasPremultipliedAlpha())
+		{
+			blendFunc.src = GL_SRC_ALPHA;
+			blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+		}
+		else
+		{
+			blendFunc.src = GL_ONE;
+			blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+		}
 		break;
 	case SsRenderBlendType::_enum::Add:
 		//加算
@@ -539,8 +554,8 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	//プレイヤー側のセルを参照する
 	//原点
 	float pivotX = dispCell->refCell.pivot_X + 0.5f;
-	float pivotY = dispCell->refCell.pivot_Y + 0.5f;
-	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
+	float pivotY = 1.0f - ( dispCell->refCell.pivot_Y + 0.5f );
+//	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
 
 	cocos2d::V3F_C4B_T2F_Quad& quad = sprite->getAttributeRef();
 	if (render->_isContentScaleFactorAuto == true)
@@ -556,7 +571,7 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 		quad.bl.texCoords.v /= cScale;
 		quad.br.texCoords.v /= cScale;
 	}
-/*
+
 	//カラー変更
 	GLubyte r = (GLubyte)(fcolor.r * 255.0f);
 	GLubyte g = (GLubyte)(fcolor.g * 255.0f);
@@ -567,15 +582,21 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	quad.tr.colors =
 	quad.bl.colors =
 	quad.br.colors = color4;
-*/
+
 	//マトリクス設定
+	cocos2d::Mat4 mat;
 	int i = 0;
 	for (i = 0; i < 16; i++)
 	{ 
 		sprite->_mat.m[i] = matrix[i];
+//		mat.m[i] = matrix[i];
 	}
+
 	// 行列を再計算させる
-//	sprite->setAdditionalTransform(nullptr);
+	sprite->setAdditionalTransform(nullptr);
+//	sprite->setAdditionalTransform(&sprite->_mat);
+//	sprite->setAdditionalTransform(&mat);
+
 
 	//うまくcocosとつなげる必要あり
 /*
@@ -839,6 +860,11 @@ void	SsEffectRenderer::setLoop(bool flag)
 	m_isLoop = flag;
 }
 
+//再生ステータスを取得
+bool	SsEffectRenderer::getPlayStatus(void)
+{
+	return(m_isPlay);
+}
 
 
 
