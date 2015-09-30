@@ -39,18 +39,18 @@ static  int seed_table[] =
 //------------------------------------------------------------------------------
 //要素生成関数
 //------------------------------------------------------------------------------
-SsEffectRenderAtom* SsEffectRenderer::CreateAtom( unsigned int seed , SsEffectRenderAtom* parent , SsEffectNode* node )
+SsEffectRenderAtom* SsEffectRenderer::CreateAtom(unsigned int seed, SsEffectRenderAtom* parent, SsEffectNode* node)
 {
 	SsEffectRenderAtom* ret = 0;
-	SsEffectNodeType::_enum type = node->GetType(); 
+	SsEffectNodeType::_enum type = node->GetType();
 
 
-	if ( type == SsEffectNodeType::particle )
+	if (type == SsEffectNodeType::particle)
 	{
 #if PFMEM_TEST
-		if ( SSEFFECTRENDER_PARTICLE_MAX <= pa_pool_count )
+		if (SSEFFECTRENDER_PARTICLE_MAX <= pa_pool_count)
 		{
-			 return 0;
+			return 0;
 		}
 		SsEffectRenderParticle* p = &pa_pool[pa_pool_count];
 		p->InitParameter();
@@ -63,58 +63,59 @@ SsEffectRenderAtom* SsEffectRenderer::CreateAtom( unsigned int seed , SsEffectRe
 		SsEffectRenderParticle* p = new SsEffectRenderParticle( node , parent );
 #endif
 
-		updatelist.push_back( p );
-		createlist.push_back( p );
+		updatelist.push_back(p);
+		createlist.push_back(p);
 		SsEffectRenderEmitter*	em = (SsEffectRenderEmitter*)parent;
-        em->myBatchList->drawlist.push_back( p );
+		em->myBatchList->drawlist.push_back(p);
 
 		ret = p;
 	}
 
 
-	if ( type == SsEffectNodeType::emmiter )
+	if (type == SsEffectNodeType::emmiter)
 	{
 
 #if PFMEM_TEST
-		if ( SSEFFECTRENDER_EMMITER_MAX <= em_pool_count )
+		if (SSEFFECTRENDER_EMMITER_MAX <= em_pool_count)
 		{
 			return 0;
 		}
-		if ( SSEFFECTRENDER_EMMITER_MAX <= dpr_pool_count ){
-			 return 0;
+		if (SSEFFECTRENDER_EMMITER_MAX <= dpr_pool_count){
+			return 0;
 		}
 		SsEffectRenderEmitter* p = &em_pool[em_pool_count];
-		SsEffectDrawBatch* bl = &drawPr_pool[dpr_pool_count];
+
+
 
 		p->InitParameter();
 		em_pool_count++;
-		dpr_pool_count++;
 
 		p->data = node;
 		p->parent = parent;
-		p->myBatchList = bl;
+
 #else
 		SsEffectRenderEmitter* p = new SsEffectRenderEmitter( node , parent);
 #endif
-		p->setMySeed( seed );
-		p->TrushRandom( em_pool_count%9 );
+		p->setMySeed(seed);
+		p->TrushRandom(em_pool_count % 9);
 
-		SsEffectFunctionExecuter::initalize( &p->data->behavior , p );
+		SsEffectFunctionExecuter::initalize(&p->data->behavior, p);
 /*
 		//セルデータの検索とセット
 		//オリジナルでは上記initializeでやっているがクラス階層の関係からこちらでやる
-		SsCelMapLinker* link = this->curCellMapManager->getCellMapLink( p->data->behavior.CellMapName );
-		if ( link )
+		SsCelMapLinker* link = this->curCellMapManager->getCellMapLink(p->data->behavior.CellMapName);
+		if (link)
 		{
-			SsCell * cell = link->findCell( p->data->behavior.CellName );
-		
-			getCellValue(	this->curCellMapManager , 
-				p->data->behavior.CellMapName ,
-				p->data->behavior.CellName , 
-				p->dispCell ); 
-		}else{
-			DEBUG_PRINTF( "cell not found : %s , %s\n" , 
-				p->data->behavior.CellMapName.c_str(), 
+			SsCell * cell = link->findCell(p->data->behavior.CellName);
+
+			getCellValue(this->curCellMapManager,
+				p->data->behavior.CellMapName,
+				p->data->behavior.CellName,
+				p->dispCell);
+		}
+		else{
+			DEBUG_PRINTF("cell not found : %s , %s\n",
+				p->data->behavior.CellMapName.c_str(),
 				p->data->behavior.CellName.c_str()
 				);
 		}
@@ -122,8 +123,44 @@ SsEffectRenderAtom* SsEffectRenderer::CreateAtom( unsigned int seed , SsEffectRe
 		//表示に必要な情報のコピー
 		p->dispCell.refCell = p->data->behavior.refCell;
 		p->dispCell.blendType = p->data->behavior.blendType;
-		updatelist.push_back( p );
-		createlist.push_back( p );
+		updatelist.push_back(p);
+		createlist.push_back(p);
+
+#if 1
+		//バッチリストを調べる
+		SsEffectDrawBatch* bl = 0;
+
+		foreach(std::list<SsEffectDrawBatch*>, drawBatchList, e)
+		{
+			if ((*e)->targetNode == node)
+			{
+				bl = (*e);
+			}
+		}
+
+		if (bl == 0)
+		{
+			if (SSEFFECTRENDER_BACTH_MAX <= dpr_pool_count){
+				return 0;
+			}
+
+			bl = &drawPr_pool[dpr_pool_count];
+
+			dpr_pool_count++;
+			bl->targetNode = node;
+		}
+#else
+		if (SSEFFECTRENDER_BACTH_MAX <= dpr_pool_count){
+			return 0;
+		}
+
+		SsEffectDrawBatch* bl = 0;
+		bl = &drawPr_pool[dpr_pool_count];
+		dpr_pool_count++;
+
+#endif
+
+		p->myBatchList = bl;
 		drawBatchList.push_back( bl );
 
 		ret = p;
@@ -501,6 +538,7 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	*render->_effectSpriteCount = (*render->_effectSpriteCount) + 1;
 	if (*render->_effectSpriteCount >= render->_effectSprite->size())
 	{
+		*render->_effectSpriteCount = render->_effectSprite->size() - 1;
 		return;	//エフェクト用スプライトの空きがない
 	}
 	if (render->_parentSprite)
@@ -521,7 +559,7 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 
 	sprite->setPosition(cocos2d::Vec2(_position.x, _position.y));
 	sprite->setScale(_size.x, _size.y);
-	cocos2d::Vec3 rot(0, 0, _rotation + RadianToDegree(direction));
+	cocos2d::Vec3 rot(0, 0, -_rotation + RadianToDegree(-direction));
 	sprite->setRotation3D(rot);
 
 	//テクスチャ、カラーブレンド
@@ -555,7 +593,7 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	//原点
 	float pivotX = dispCell->refCell.pivot_X + 0.5f;
 	float pivotY = 1.0f - ( dispCell->refCell.pivot_Y + 0.5f );
-//	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
+	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
 
 	cocos2d::V3F_C4B_T2F_Quad& quad = sprite->getAttributeRef();
 	if (render->_isContentScaleFactorAuto == true)
@@ -577,12 +615,32 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	GLubyte g = (GLubyte)(fcolor.g * 255.0f);
 	GLubyte b = (GLubyte)(fcolor.b * 255.0f);
 	GLubyte a = (GLubyte)(fcolor.a * 255.0f);
+/*
+	switch (dispCell->blendType)		//ブレンド表示
+	{
+	case SsRenderBlendType::_enum::Mix:
+		//通常
+		break;
+	case SsRenderBlendType::_enum::Add:
+		//加算
+		if (dispCell->refCell.texture->hasPremultipliedAlpha())
+		{
+			a = 255;
+		}
+		break;
+	}
+*/
+	sprite->setOpacity(a);
+	cocos2d::Color3B color3 = { r, g, b };
+	sprite->setColor(color3);
+/*
 	cocos2d::Color4B color4 = { r, g, b, a };
 	quad.tl.colors =
 	quad.tr.colors =
 	quad.bl.colors =
 	quad.br.colors = color4;
-
+*/
+/*
 	//マトリクス設定
 	cocos2d::Mat4 mat;
 	int i = 0;
@@ -591,9 +649,9 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 		sprite->_mat.m[i] = matrix[i];
 //		mat.m[i] = matrix[i];
 	}
-
+*/
 	// 行列を再計算させる
-	sprite->setAdditionalTransform(nullptr);
+//	sprite->setAdditionalTransform(nullptr);
 //	sprite->setAdditionalTransform(&sprite->_mat);
 //	sprite->setAdditionalTransform(&mat);
 
@@ -707,27 +765,9 @@ void	SsEffectRenderer::update(float delta)
 //------------------------------------------------------------------------------
 void	SsEffectRenderer::draw()
 {
-//	SsCurrentRenderer::getRender()->renderSetup();					
-	
+
 	foreach( std::list<SsEffectDrawBatch*> , drawBatchList , e )
 	{
-		//セットアップ
-		if ( (*e)->dispCell )
-		{
-/*
-			switch( (*e)->blendType )
-			{
-				case SsRenderBlendType::Mix:
-//					SsCurrentRenderer::getRender()->SetAlphaBlendMode(SsBlendType::mix);					
-					break;
-				case SsRenderBlendType::Add:
-//					SsCurrentRenderer::getRender()->SetAlphaBlendMode(SsBlendType::add);					
-					break;
-			}
-//			SsCurrentRenderer::getRender()->SetTexture( (*e)->dispCell );
-*/
-		}
-
 		foreach( std::list<SsEffectRenderAtom*> , (*e)->drawlist , e2 )
 		{
 			if ( (*e2) )

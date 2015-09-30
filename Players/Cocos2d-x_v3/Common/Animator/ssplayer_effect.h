@@ -158,6 +158,7 @@ class SsEffectDrawBatch
 public:
 	int	priority;
 	SsCellValue*			dispCell;
+	SsEffectNode*			targetNode;
 
 	SsRenderBlendType::_enum       blendType;
 
@@ -165,7 +166,7 @@ public:
 	std::list<SsEffectRenderAtom*> drawlist;
 
 
-	SsEffectDrawBatch() : priority(0), dispCell(0) {}
+	SsEffectDrawBatch() : priority(0), dispCell(0), targetNode(0) {}
 	~SsEffectDrawBatch(){}
 
 	void	drawSetting();
@@ -366,10 +367,24 @@ public:
 
 
 
+//----------------------------------------------------------------
+// 画面に存在できるパーティクルバッファのサイズを指定します。
+// 画面に存在できるエミッタバッファのサイズを指定します。
+//
+// １つのパーツに対してこれらのバッファが生成されます。
+// パーツ単位で画面に生成できる最大数になります。
+//
+// パーティクルにエミッターを付加した場合に複数のエミッターが同時に作成され
+// エミッターバッファが消費されます。
+//
+// アプリケーションの仕様に合わせて数を調整してください。
+// パーツ単位でバッファを作成するので、バッファ数を多く設定すると
+// アニメーション再生時にバッファ確保の時間が長くなります。
+//----------------------------------------------------------------
+#define SSEFFECTRENDER_EMMITER_MAX (128)		//エミッターバッファ数
+#define SSEFFECTRENDER_PARTICLE_MAX (512)	//パーティクルバッファ数
+#define SSEFFECTRENDER_BACTH_MAX (16)		//ノード階層最大値（固定）
 
-
-#define SSEFFECTRENDER_EMMITER_MAX (1024)
-#define SSEFFECTRENDER_PARTICLE_MAX (4096)
 
 
 
@@ -394,10 +409,10 @@ private:
 
 
 #if PFMEM_TEST
-	SsEffectRenderEmitter    em_pool[SSEFFECTRENDER_EMMITER_MAX+16];
-	SsEffectRenderParticle   pa_pool[SSEFFECTRENDER_PARTICLE_MAX+16];
+	SsEffectRenderEmitter    em_pool[SSEFFECTRENDER_EMMITER_MAX + 1];
+	SsEffectRenderParticle   pa_pool[SSEFFECTRENDER_PARTICLE_MAX + 1];
 
-	SsEffectDrawBatch		 drawPr_pool[SSEFFECTRENDER_EMMITER_MAX+16];
+	SsEffectDrawBatch		 drawPr_pool[SSEFFECTRENDER_BACTH_MAX + 1];
 
 
 	int						em_pool_count;
