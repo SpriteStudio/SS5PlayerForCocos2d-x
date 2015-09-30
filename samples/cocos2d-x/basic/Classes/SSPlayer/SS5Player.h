@@ -561,6 +561,7 @@ enum BlendType
 	BLEND_SUB		///< 3 減算
 };
 /*
+Common\Loader\sstypes.hに実際の定義があります。
 /// テクスチャラップモード
 namespace SsTexWrapMode
 {
@@ -590,8 +591,16 @@ namespace SsTexFilterMode
 #define DOT (10.0f)
 //プレイヤーで扱えるアニメに含まれるパーツの最大数
 #define PART_VISIBLE_MAX (1024)
-//プレイヤーが保持するエフェクトスプライト数
+
+// プレイヤーが保持するエフェクトスプライト数
+// エフェクト管理クラスにも1パーツで管理するパーティクル数の定義があります。
+// Common\Animator\ssplayer_effect.hの以下の定義を参照して適正な値を設定してください。
+// プレイヤーかエフェクトクラスどちらかのバッファが足りない場合、パーティクルが表示されなくなります。
+// #define SSEFFECTRENDER_EMMITER_MAX 		//エミッターバッファ数
+// #define SSEFFECTRENDER_PARTICLE_MAX		//パーティクルバッファ数
 #define EFFECTSPRTE_MAX (512)
+
+
 
 /**
  * Player
@@ -641,19 +650,19 @@ public:
 	/**
 	 * アニメーションの再生を開始します.
 	 *
-	 * @param  packName      パック名(ssae）
-	 * @param  animeName     再生するアニメーション名
+	 * @param  ssaeName      パック名(ssae名）
+	 * @param  motionName     再生するモーション名
 	 * @param  loop          再生ループ数の指定. 省略時は0
 	 * @param  startFrameNo  再生を開始するフレームNoの指定. 省略時は0
 	 */
-	void play(const std::string& packName, const std::string& animeName, int loop = 0, int startFrameNo = 0);
+	void play(const std::string& ssaeName, const std::string& motionName, int loop = 0, int startFrameNo = 0);
 
 	/**
 	 * アニメーションの再生を開始します.
 	 * アニメーション名から再生するデータを選択します.
-	 * "ssae名/アニメーション名" という指定が可能です.
+	 * "ssae名/モーション名で指定してください.
 	 * sample.ssaeのanime_1を指定する場合、sample/anime_1となります.
-	 * ※アニメーション名のみで指定した場合、同名のアニメーションが複数存在時にどのアニメーションが選択されるかは不定です.
+	 * ※ver1.1からモーション名のみで指定する事はできなくなりました。
 	 *
 	 * @param  animeName     再生するアニメーション名
 	 * @param  loop          再生ループ数の指定. 省略時は0
