@@ -46,7 +46,6 @@ Cocos2d-X Ver3.7に対応しています。
 #include "./Common/loader/ssloader.h"
 #include "./Common/Animator/ssplayer_macro.h"
 #include "./Common/Animator/ssplayer_matrix.h"
-#include "./Common/Animator/ssplayer_render.h"
 #include "./Common/Animator/ssplayer_effectfunction.h"
 #include "./Common/Animator/ssplayer_cellmap.h"
 #include "./Common/Animator/ssplayer_PartState.h"
@@ -841,6 +840,7 @@ public:
 	/*
 	* 名前を指定してパーツの再生するインスタンスアニメを変更します。
 	* 指定したパーツがインスタンスパーツでない場合、falseを返します.
+	* インスタンスパーツ名はディフォルトでは「ssae名:モーション名」とつけられています。
 	* 再生するアニメの名前は"ssae名/アニメーション名"として再生してください。
 	* 現在再生しているアニメを指定することは入れ子となり無限ループとなるためできません。
 	*
@@ -848,6 +848,12 @@ public:
 	* アニメーションに合わせて開始フレーム、終了フレーム等のインスタンスアトリビュート情報を設定してください。
 	* 終了フレーム最大値は総フレーム-1になります。
 	* 上書きフラグがfalseの場合、SS上に設定されたインスタンスアトリビュートの設定を使用します。
+	* 使用例：
+	* ss::Instance param;
+	* param.clear();
+	* param.refEndframe = resman->getMaxFrame("ssbp名","ssae名/モーション名") - 1;	//アニメーションの長さを取得
+	* param.infinity = true;														//無限ループを設定
+	* ssplayer->changeInstanceAnime("再生しているアニメーションに含まれるインスタンスパーツ名", "ssae名/モーション名", true, param);
 	*
 	* @param  partsname			SS上のパーツ名
 	* @param  animeName			参照するアニメ名
