@@ -76,7 +76,7 @@ public:
         type = VarianceValue::MinMax;
 	}
 
-	void	setPlusMinus( mytype v1  )
+	void	setPlusMinus( mytype v  )
 	{
 		value = -v;
 		subvalue = v;
@@ -105,10 +105,12 @@ public:
 	operator mytype() { return value; }
 
 private:
+/*
 	virtual bool	inputString( SsString value , SsString subvalue )
 	{
 	 return true;
 	}
+*/
 };
 
 
@@ -116,7 +118,7 @@ typedef VarianceValue<float>   			f32VValue;
 typedef VarianceValue<int>    			i32VValue;
 typedef VarianceValue<SsU8Color>    	SsU8cVValue;
 
-
+/*
 template<> bool VarianceValue<float>::inputString( SsString _value , SsString _subvalue )
 { 
 	value = (float)atof(_value.c_str());
@@ -139,7 +141,7 @@ template<> bool VarianceValue<SsU8Color>::inputString( SsString _value , SsStrin
 	subvalue.fromARGB( b );
 	return true;
 }
-
+*/
 
 
 

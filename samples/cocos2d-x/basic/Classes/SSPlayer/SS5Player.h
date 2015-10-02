@@ -352,7 +352,7 @@ public:
 	* @param  animeName      ssae/モーション名
 	* @return アニメーションの総フレーム（存在しない場合はアサート）
 	*/
-	int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName);
+	int getMaxFrame(std::string ssbpName, std::string animeName);
 
 	/**
 	 * 新たなResourceManagerインスタンスを構築します.
