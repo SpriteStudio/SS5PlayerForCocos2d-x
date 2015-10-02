@@ -632,13 +632,13 @@ protected:
 						int r = (readparam.ColorMinValue & 0x00FF0000) >> 16;
 						int g = (readparam.ColorMinValue & 0x0000FF00) >> 8;
 						int b = (readparam.ColorMinValue & 0x000000FF) >> 0;
-						SsU8Color min(r, g, b, a);
+						SsU8Color mincol(r, g, b, a);
 						a = (readparam.ColorMaxValue & 0xFF000000) >> 24;
 						r = (readparam.ColorMaxValue & 0x00FF0000) >> 16;
 						g = (readparam.ColorMaxValue & 0x0000FF00) >> 8;
 						b = (readparam.ColorMaxValue & 0x000000FF) >> 0;
-						SsU8Color max(r, g, b, a);
-						effectParam->Color.setMinMax(min, max);			//設定カラー最小
+						SsU8Color maxcol(r, g, b, a);
+						effectParam->Color.setMinMax(mincol, maxcol);			//設定カラー最小
 
 						behavior.plist.push_back(effectParam);												//パラメータを追加
 						break;
@@ -657,13 +657,13 @@ protected:
 						int r = (readparam.ColorMinValue & 0x00FF0000) >> 16;
 						int g = (readparam.ColorMinValue & 0x0000FF00) >> 8;
 						int b = (readparam.ColorMinValue & 0x000000FF) >> 0;
-						SsU8Color min(r, g, b, a);
+						SsU8Color mincol(r, g, b, a);
 						a = (readparam.ColorMaxValue & 0xFF000000) >> 24;
 						r = (readparam.ColorMaxValue & 0x00FF0000) >> 16;
 						g = (readparam.ColorMaxValue & 0x0000FF00) >> 8;
 						b = (readparam.ColorMaxValue & 0x000000FF) >> 0;
-						SsU8Color max(r, g, b, a);
-						effectParam->Color.setMinMax(min, max);			//設定カラー最小
+						SsU8Color maxcol(r, g, b, a);
+						effectParam->Color.setMinMax(mincol, maxcol);			//設定カラー最小
 
 						behavior.plist.push_back(effectParam);												//パラメータを追加
 						break;
@@ -1545,7 +1545,6 @@ void Player::updateFrame(float dt)
 					}
 					
 					incFrameNo = 0;
-					effectReload();		//エフェクトのリセット
 				}
 				currentFrameNo = incFrameNo;
 
@@ -1575,7 +1574,6 @@ void Player::updateFrame(float dt)
 					}
 				
 					decFrameNo = numFrames - 1;
-					effectReload();		//エフェクトのリセット
 				}
 				currentFrameNo = decFrameNo;
 

@@ -43,6 +43,16 @@ Cocos2d-X Ver2.2.6に対応しています。
 #include "cocos2d.h"
 #include "SS5PlayerData.h"
 
+//エフェクト関連
+#include "./Common/loader/ssloader.h"
+#include "./Common/Animator/ssplayer_macro.h"
+#include "./Common/Animator/ssplayer_matrix.h"
+#include "./Common/Animator/ssplayer_effectfunction.h"
+#include "./Common/Animator/ssplayer_cellmap.h"
+#include "./Common/Animator/ssplayer_PartState.h"
+#include "./Common/Animator/MersenneTwister.h"
+
+
 
 namespace ss
 {
@@ -54,6 +64,209 @@ class AnimeCache;
 class AnimeRef;
 class ResourceSet;
 struct ProjectData;
+class Player;
+
+
+/**
+* State
+*/
+struct State
+{
+	int flags;						/// このフレームで更新が行われるステータスのフラグ
+	int cellIndex;					/// パーツに割り当てられたセルの番号
+	float x;						/// SS5アトリビュート：X座標
+	float y;						/// SS5アトリビュート：Y座標
+	float z;						/// SS5アトリビュート：Z座標
+	float pivotX;					/// 原点Xオフセット＋セルに設定された原点オフセットX
+	float pivotY;					/// 原点Yオフセット＋セルに設定された原点オフセットY
+	float rotationX;				/// X回転（親子関係計算済）
+	float rotationY;				/// Y回転（親子関係計算済）
+	float rotationZ;				/// Z回転（親子関係計算済）
+	float scaleX;					/// Xスケール（親子関係計算済）
+	float scaleY;					/// Yスケール（親子関係計算済）
+	int opacity;					/// 不透明度（0～255）（親子関係計算済）
+	float size_X;					/// SS5アトリビュート：Xサイズ
+	float size_Y;					/// SS5アトリビュート：Xサイズ
+	float uv_move_X;				/// SS5アトリビュート：UV X移動
+	float uv_move_Y;				/// SS5アトリビュート：UV Y移動
+	float uv_rotation;				/// SS5アトリビュート：UV 回転
+	float uv_scale_X;				/// SS5アトリビュート：UV Xスケール
+	float uv_scale_Y;				/// SS5アトリビュート：UV Yスケール
+	float boundingRadius;			/// SS5アトリビュート：当たり半径
+	int colorBlendFunc;				/// SS5アトリビュート：カラーブレンドのブレンド方法
+	int colorBlendType;				/// SS5アトリビュート：カラーブレンドの単色か頂点カラーか。
+	bool flipX;						/// 横反転（親子関係計算済）
+	bool flipY;						/// 縦反転（親子関係計算済）
+	bool isVisibled;				/// 非表示（親子関係計算済）
+	float instancerotationX;		/// インスタンスパーツに設定されたX回転
+	float instancerotationY;		/// インスタンスパーツに設定されたY回転
+	float instancerotationZ;		/// インスタンスパーツに設定されたZ回転
+	cocos2d::CCAffineTransform	trans;
+
+	void init()
+	{
+		flags = 0;
+		cellIndex = 0;
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+		pivotX = 0.0f;
+		pivotY = 0.0f;
+		rotationX = 0.0f;
+		rotationY = 0.0f;
+		rotationZ = 0.0f;
+		scaleX = 1.0f;
+		scaleY = 1.0f;
+		opacity = 255;
+		size_X = 1.0f;
+		size_Y = 1.0f;
+		uv_move_X = 0.0f;
+		uv_move_Y = 0.0f;
+		uv_rotation = 0.0f;
+		uv_scale_X = 1.0f;
+		uv_scale_Y = 1.0f;
+		boundingRadius = 0.0f;
+		colorBlendFunc = 0;
+		colorBlendType = 0;
+		flipX = false;
+		flipY = false;
+		isVisibled = false;
+		instancerotationX = 0.0f;
+		instancerotationY = 0.0f;
+		instancerotationZ = 0.0f;
+		trans = cocos2d::CCAffineTransformMakeIdentity();
+	}
+
+	State() { init(); }
+};
+
+
+/**
+* CustomSprite
+*/
+class CustomSprite : public cocos2d::CCSprite
+{
+private:
+	static unsigned int ssSelectorLocation;
+	static unsigned int	ssAlphaLocation;
+	static unsigned int	sshasPremultipliedAlpha;
+
+	static cocos2d::CCGLProgram* getCustomShaderProgram();
+
+private:
+	cocos2d::CCGLProgram*	_defaultShaderProgram;
+	bool				_useCustomShaderProgram;
+	float				_opacity;
+	int					_hasPremultipliedAlpha;
+	int					_colorBlendFuncNo;
+	bool				_flipX;
+	bool				_flipY;
+
+public:
+	float				_mat[16];
+	State				_state;
+	bool				_isStateChanged;
+	CustomSprite*		_parent;
+	ss::Player*			_ssplayer;
+	float				_liveFrame;
+
+	//エフェクト用パラメータ
+	SsEffectRenderer*	refEffect;
+	SsPartState			partState;
+
+public:
+	CustomSprite();
+	virtual ~CustomSprite();
+
+	static CustomSprite* create();
+
+	void initState()
+	{
+		IdentityMatrix(_mat);
+		_state.init();
+		_isStateChanged = true;
+	}
+
+	void setStateValue(float& ref, float value)
+	{
+		if (ref != value)
+		{
+			ref = value;
+			_isStateChanged = true;
+		}
+	}
+	void setStateValue(int& ref, int value)
+	{
+		if (ref != value)
+		{
+			ref = value;
+			_isStateChanged = true;
+		}
+	}
+
+	void setStateValue(bool& ref, bool value)
+	{
+		if (ref != value)
+		{
+			ref = value;
+			_isStateChanged = true;
+		}
+	}
+
+	void setState(const State& state)
+	{
+		setStateValue(_state.flags, state.flags);
+		setStateValue(_state.cellIndex, state.cellIndex);
+		setStateValue(_state.x, state.x);
+		setStateValue(_state.y, state.y);
+		setStateValue(_state.z, state.z);
+		setStateValue(_state.pivotX, state.pivotX);
+		setStateValue(_state.pivotY, state.pivotY);
+		setStateValue(_state.rotationX, state.rotationX);
+		setStateValue(_state.rotationY, state.rotationY);
+		setStateValue(_state.rotationZ, state.rotationZ);
+		setStateValue(_state.scaleX, state.scaleX);
+		setStateValue(_state.scaleY, state.scaleY);
+		setStateValue(_state.opacity, state.opacity);
+		setStateValue(_state.size_X, state.size_X);
+		setStateValue(_state.size_Y, state.size_Y);
+		setStateValue(_state.uv_move_X, state.uv_move_X);
+		setStateValue(_state.uv_move_Y, state.uv_move_Y);
+		setStateValue(_state.uv_rotation, state.uv_rotation);
+		setStateValue(_state.uv_scale_X, state.uv_scale_X);
+		setStateValue(_state.uv_scale_Y, state.uv_scale_Y);
+		setStateValue(_state.boundingRadius, state.boundingRadius);
+		setStateValue(_state.isVisibled, state.isVisibled);
+		setStateValue(_state.flipX, state.flipX);
+		setStateValue(_state.flipY, state.flipY);
+		setStateValue(_state.colorBlendFunc, state.colorBlendFunc);
+		setStateValue(_state.colorBlendType, state.colorBlendType);
+
+		setStateValue(_state.instancerotationX, state.instancerotationX);
+		setStateValue(_state.instancerotationY, state.instancerotationY);
+		setStateValue(_state.instancerotationZ, state.instancerotationZ);
+	}
+
+
+	// override
+	virtual void draw(void);
+	virtual void setOpacity(GLubyte opacity);
+
+	// original functions
+	void changeShaderProgram(bool useCustomShaderProgram);
+	bool isCustomShaderProgramEnabled() const;
+	void setColorBlendFunc(int colorBlendFuncNo);
+	cocos2d::ccV3F_C4B_T2F_Quad& getAttributeRef();
+
+	void setFlippedX(bool flip);
+	void setFlippedY(bool flip);
+	bool isFlippedX();
+	bool isFlippedY();
+	void sethasPremultipliedAlpha(int PremultipliedAlpha);
+
+public:
+};
+
 
 /**
  * ResourceManager
@@ -144,7 +357,7 @@ public:
 	* @param  animeName      ssae/モーション名
 	* @return アニメーションの総フレーム（存在しない場合はアサート）
 	*/
-	int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName);
+	int getMaxFrame(std::string ssbpName, std::string animeName);
 
 	/**
 	 * 新たなResourceManagerインスタンスを構築します.
@@ -353,6 +566,8 @@ enum BlendType
 	BLEND_SUB		///< 3 減算
 };
 
+/*
+Common\Loader\sstypes.hに実際の定義があります。
 /// テクスチャラップモード
 namespace SsTexWrapMode
 {
@@ -377,37 +592,22 @@ namespace SsTexFilterMode
 		num
 	};
 };
-
-//エフェクトコマンド種別
-namespace SsEffectFunctionType
-{
-	enum enum_
-	{
-		Base,
-		Basic,
-		RndSeedChange,
-		Delay,
-		Gravity,
-		Position,
-		//TransPosition,
-		Rotation,
-		TransRotation,
-		TransSpeed,
-		TangentialAcceleration,
-		InitColor,
-		TransColor,
-		AlphaFade,
-		Size,
-		TransSize,
-		PointGravity,
-		TurnToDirectionEnabled,
-	};
-}
-
+*/
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)
 //プレイヤーで扱えるアニメに含まれるパーツの最大数
 #define PART_VISIBLE_MAX (1024)
+
+// プレイヤーが保持するエフェクトスプライト数
+// エフェクト管理クラスにも1パーツで管理するパーティクル数の定義があります。
+// Common\Animator\ssplayer_effect.hの以下の定義を参照して適正な値を設定してください。
+// プレイヤーかエフェクトクラスどちらかのバッファが足りない場合、パーティクルが表示されなくなります。
+// #define SSEFFECTRENDER_EMMITER_MAX 		//エミッターバッファ数
+// #define SSEFFECTRENDER_PARTICLE_MAX		//パーティクルバッファ数
+#define EFFECTSPRTE_MAX (512)
+
+
+
 
 /**
  * Player
@@ -458,19 +658,19 @@ public:
 	/**
 	 * アニメーションの再生を開始します.
 	 *
-	 * @param  packName      パック名(ssae）
-	 * @param  animeName     再生するアニメーション名
+	 * @param  ssaeName      パック名(ssae名）
+	 * @param  motionName    再生するモーション名
 	 * @param  loop          再生ループ数の指定. 省略時は0
 	 * @param  startFrameNo  再生を開始するフレームNoの指定. 省略時は0
 	 */
-	void play(const std::string& packName, const std::string& animeName, int loop = 0, int startFrameNo = 0);
+	void play(const std::string& ssaeName, const std::string& motionName, int loop = 0, int startFrameNo = 0);
 
 	/**
 	 * アニメーションの再生を開始します.
 	 * アニメーション名から再生するデータを選択します.
-	 * "ssae名/アニメーション名" という指定が可能です.
+	 * "ssae名/モーション名で指定してください.
 	 * sample.ssaeのanime_1を指定する場合、sample/anime_1となります.
-	 * ※アニメーション名のみで指定した場合、同名のアニメーションが複数存在時にどのアニメーションが選択されるかは不定です.
+	 * ※ver1.1からモーション名のみで指定する事はできなくなりました。
 	 *
 	 * @param  animeName     再生するアニメーション名
 	 * @param  loop          再生ループ数の指定. 省略時は0
@@ -653,6 +853,7 @@ public:
 	/*
 	* 名前を指定してパーツの再生するインスタンスアニメを変更します。
 	* 指定したパーツがインスタンスパーツでない場合、falseを返します.
+	* インスタンスパーツ名はディフォルトでは「ssae名:モーション名」とつけられています。
 	* 再生するアニメの名前は"ssae名/アニメーション名"として再生してください。
 	* 現在再生しているアニメを指定することは入れ子となり無限ループとなるためできません。
 	*
@@ -660,6 +861,12 @@ public:
 	* アニメーションに合わせて開始フレーム、終了フレーム等のインスタンスアトリビュート情報を設定してください。
 	* 終了フレーム最大値は総フレーム-1になります。
 	* 上書きフラグがfalseの場合、SS上に設定されたインスタンスアトリビュートの設定を使用します。
+	* 使用例：
+	* ss::Instance param;
+	* param.clear();
+	* param.refEndframe = resman->getMaxFrame("ssbp名","ssae名/モーション名") - 1;	//アニメーションの長さを取得
+	* param.infinity = true;														//無限ループを設定
+	* ssplayer->changeInstanceAnime("再生しているアニメーションに含まれるインスタンスパーツ名", "ssae名/モーション名", true, param);
 	*
 	* @param  partsname			SS上のパーツ名
 	* @param  animeName			参照するアニメ名
@@ -752,6 +959,12 @@ protected:
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
 	void checkPlayEndCallback(void);
+	void effectReload(void);
+
+public:
+	//エフェクト用データ
+	std::vector<CustomSprite*>		_effectSprite;		//エフェクトクラスに渡す都合上publicにしておく
+	int								_effectSpriteCount;	//エフェクトクラスに渡す都合上publicにしておく
 
 protected:
 	ResourceManager*	_resman;
