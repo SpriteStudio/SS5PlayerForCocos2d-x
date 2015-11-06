@@ -1243,9 +1243,11 @@ Player::Player(void)
 	, _col_g(255)
 	, _col_b(255)
 	, _instanceOverWrite(false)
-
+	, _offScreentexture(nullptr)
 	, _userDataCallback(nullptr)
 	, _playEndCallback(nullptr)
+	, _offScreenWidth(0)
+	, _offScreenHeight(0)
 
 	, _effectSpriteCount(0)
 {
@@ -1744,6 +1746,9 @@ void Player::setPartsParentage()
 				sprite->refEffect->setEffectData(effectmodel);
 				sprite->refEffect->setEffectSprite(&_effectSprite);	//エフェクトクラスに渡す都合上publicにしておく
 				sprite->refEffect->setEffectSpriteCount(&_effectSpriteCount);	//エフェクトクラスに渡す都合上publicにしておく
+
+				srand((unsigned)time(NULL));
+				sprite->refEffect->setSeed(rand());
 				sprite->refEffect->reload();
 				sprite->refEffect->stop();
 			}
@@ -2086,6 +2091,34 @@ void Player::setColor(int r, int g, int b)
 	_col_r = r;
 	_col_g = g;
 	_col_b = b;
+}
+
+//オフスクリーンレンダリングを有効にします。
+void Player::offScreenRenderingEnable(bool enable, int width, int height)
+{
+	if (_offScreentexture)
+	{
+		_offScreentexture->removeFromParentAndCleanup(true);
+		_offScreentexture = nullptr;
+		_offScreenWidth = 0;
+		_offScreenHeight = 0;
+	}
+	if (enable == true)
+	{
+		//オフスクリーンレンダリングテクスチャを作成
+		_offScreenWidth = width;
+		_offScreenHeight = height;
+		_offScreentexture = cocos2d::RenderTexture::create(width, height);
+		cocos2d::Texture2D::TexParams texParams;
+		texParams.wrapS = GL_CLAMP_TO_EDGE;
+		texParams.wrapT = GL_CLAMP_TO_EDGE;
+		texParams.minFilter = GL_NEAREST;
+		texParams.magFilter = GL_NEAREST;
+		_offScreentexture->getSprite()->getTexture()->setTexParameters(texParams);
+
+		addChild(_offScreentexture);
+		_offScreentexture->setVisible(true);
+	}
 }
 
 
@@ -2882,11 +2915,14 @@ void Player::setFrame(int frameNo)
 				if (sprite->refEffect->getPlayStatus() == true)
 				{
 					//毎回行うと負荷がかかるので、前回が再生中であればリセット
+					srand((unsigned)time(NULL));
+					sprite->refEffect->setSeed(rand());
 					sprite->refEffect->reload();
 					sprite->refEffect->stop();
 				}
 			}
-			else{
+			else
+			{
 				//パーツのステータスの更新
 				sprite->partState.alpha = sprite->_state.opacity / 255.0f;
 				int matindex = 0;
@@ -2915,7 +2951,8 @@ void Player::setFrame(int frameNo)
 					else
 					{
 						//アニメーションループ時
-						sprite->refEffect->setSeed(rand() % 31);
+						srand((unsigned)time(NULL));
+						sprite->refEffect->setSeed(rand());
 						sprite->refEffect->reload();
 						sprite->refEffect->play();
 						sprite->refEffect->update(0); //先頭フレームは0でアップデートする
@@ -2940,6 +2977,30 @@ void Player::setFrame(int frameNo)
 			}
 		}
 	}
+
+	//オフスクリーンレンダリング対応
+	if (_offScreentexture)
+	{
+		_offScreentexture->beginWithClear(0, 0, 0, 0);
+		for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
+		{
+			const PartData* partData = &parts[partIndex];
+			CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
+
+			if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
+			{ 
+				cocos2d::Vec2 pos = sprite->getPosition();
+				pos.x += _offScreenWidth / 2;
+				pos.y += _offScreenHeight / 2;
+				sprite->setPosition(cocos2d::Point(pos.x, pos.y));
+				sprite->visit();
+			}
+			sprite->setVisible(false);
+		}
+		_offScreentexture->end();	//描画開始
+	}
+
+
 	_prevDrawFrameNo = frameNo;	//再生したフレームを保存
 
 }
@@ -3062,29 +3123,6 @@ void  Player::set_InstanceRotation(float rotX, float rotY, float rotZ)
 	_InstanceRotZ = rotZ;
 }
 
-//エフェクトのリロード処理
-void Player::effectReload(void)
-{
-	if (!_currentAnimeRef) return;
-	if (!_currentRs->data) return;
-
-	ToPointer ptr(_currentRs->data);
-
-	//アニメーションがループする際にエフェクトクラスを初期化する
-	const AnimePackData* packData = _currentAnimeRef->animePackData;
-	const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
-	for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
-	{
-		const PartData* partData = &parts[partIndex];
-		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
-		//エフェクトのアップデート
-		if (sprite->refEffect)
-		{
-			sprite->refEffect->setSeed(rand() % 31);
-			sprite->refEffect->reload();
-		}
-	}
-}
 
 /**
  * CustomSprite

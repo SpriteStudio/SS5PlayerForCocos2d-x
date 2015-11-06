@@ -32,6 +32,7 @@ Cocos2d-X Ver3.8に対応しています。
   //平行投影の設定
   director->setProjection(kCCDirectorProjection2D);
 
+ 使用するアニメーションに合わせて Playerクラス定義部分にある設定用定数を変更してください。
 
 *************************************************************/
 
@@ -361,6 +362,7 @@ public:
 	 */
 	static ResourceManager* create();
 
+
 public:
 	ResourceManager(void);
 	virtual ~ResourceManager();
@@ -588,16 +590,31 @@ namespace SsTexFilterMode
 */
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)
+
+//------------------------------------------------------------------------------
+//プレイヤーの設定定義
+//使用するアニメーションに合わせて設定してください。
+
+
 //プレイヤーで扱えるアニメに含まれるパーツの最大数
-#define PART_VISIBLE_MAX (1024)
+//数が大きくなるとプレイヤー生成時に負荷がかかります。
+#define PART_VISIBLE_MAX (512)
+
 
 // プレイヤーが保持するエフェクトスプライト数
-// エフェクト管理クラスにも1パーツで管理するパーティクル数の定義があります。
-// Common\Animator\ssplayer_effect.hの以下の定義を参照して適正な値を設定してください。
+// 数が大きくなるとプレイヤー生成時に負荷がかかります。
+// エフェクト機能を使用しない場合、0 にするとバッファの生成を行わないため初期化の負荷がなくなります。
 // プレイヤーかエフェクトクラスどちらかのバッファが足りない場合、パーティクルが表示されなくなります。
-// #define SSEFFECTRENDER_EMMITER_MAX 		//エミッターバッファ数
-// #define SSEFFECTRENDER_PARTICLE_MAX		//パーティクルバッファ数
 #define EFFECTSPRTE_MAX (512)
+
+
+// エフェクト機能を使用する場合は
+// Common/Animator/ssplayer_effect.h
+// に定義されているエフェクトクラスの管理するバッファ定数も参照してください。
+//#define SSEFFECTRENDER_EMMITER_MAX (128)		//１パーツが管理するエミッターバッファ数
+//#define SSEFFECTRENDER_PARTICLE_MAX (512)		//１パーツが管理するパーティクルバッファ数
+
+//------------------------------------------------------------------------------
 
 
 
@@ -878,6 +895,18 @@ public:
 	*/
 	void getInstanceParam(bool *overWrite, Instance *keyParam);
 
+	/*
+	* オフスクリーンレンダリングを有効にします。
+	* 有効時は指定したサイズでクリッピングされます。
+	* 一度アニメーションを仮想レンダーにレンダリングしてから描画するため負荷がかかります。
+	* 制限としてカラーブレンドを使用したパーツは描画されませんのでご注意ください。
+	*
+	* @param  flag				有効：true、無効：false
+	* @param  width				クリッピングするサイズ（横幅）
+	* @param  height			クリッピングするサイズ（高さ）
+	*/
+	void offScreenRenderingEnable(bool enable, int width, int height);
+
 	typedef std::function<void(Player*, const UserData*)> UserDataCallback;
 	typedef std::function<void(Player*)> PlayEndCallback;
 	typedef std::function<void(Player*)> ErrorCallback;
@@ -955,7 +984,6 @@ protected:
 	void checkUserData(int frameNo);
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
-	void effectReload(void);
 
 public:
 	//エフェクト用データ
@@ -993,11 +1021,15 @@ protected:
 	int					_col_b;
 	bool				_instanceOverWrite;		//インスタンス情報を上書きするか？
 	Instance			_instanseParam;			//インスタンスパラメータ
+	cocos2d::RenderTexture*	_offScreentexture;
+	int					_offScreenWidth;
+	int					_offScreenHeight;
 
 	UserDataCallback	_userDataCallback;
 	UserData			_userData;
 	PlayEndCallback		_playEndCallback;
 	ErrorCallback		_ErrorCallback;
+
 };
 
 
