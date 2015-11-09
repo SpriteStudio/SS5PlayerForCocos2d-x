@@ -1789,6 +1789,8 @@ void Player::setPartsParentage()
 				sprite->refEffect->setEffectData(effectmodel);
 				sprite->refEffect->setEffectSprite(&_effectSprite);	//エフェクトクラスに渡す都合上publicにしておく
 				sprite->refEffect->setEffectSpriteCount(&_effectSpriteCount);	//エフェクトクラスに渡す都合上publicにしておく
+
+				sprite->refEffect->setSeed(rand());
 				sprite->refEffect->reload();
 				sprite->refEffect->stop();
 			}
@@ -2929,6 +2931,7 @@ void Player::setFrame(int frameNo)
 				if (sprite->refEffect->getPlayStatus() == true)
 				{
 					//毎回行うと負荷がかかるので、前回が再生中であればリセット
+					sprite->refEffect->setSeed(rand());
 					sprite->refEffect->reload();
 					sprite->refEffect->stop();
 				}
@@ -2962,7 +2965,7 @@ void Player::setFrame(int frameNo)
 					else
 					{
 						//アニメーションループ時
-						sprite->refEffect->setSeed(rand() % 31);
+						sprite->refEffect->setSeed(rand());
 						sprite->refEffect->reload();
 						sprite->refEffect->play();
 						sprite->refEffect->update(0); //先頭フレームは0でアップデートする
@@ -3115,29 +3118,6 @@ void  Player::set_InstanceRotation(float rotX, float rotY, float rotZ)
 	_InstanceRotX = rotX;
 	_InstanceRotY = rotY;
 	_InstanceRotZ = rotZ;
-}
-//エフェクトのリロード処理
-void Player::effectReload(void)
-{
-	if (!_currentAnimeRef) return;
-	if (!_currentRs->data) return;
-
-	ToPointer ptr(_currentRs->data);
-
-	//アニメーションがループする際にエフェクトクラスを初期化する
-	const AnimePackData* packData = _currentAnimeRef->animePackData;
-	const PartData* parts = static_cast<const PartData*>(ptr(packData->parts));
-	for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
-	{
-		const PartData* partData = &parts[partIndex];
-		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
-		//エフェクトのアップデート
-		if (sprite->refEffect)
-		{
-			sprite->refEffect->setSeed(rand() % 31);
-			sprite->refEffect->reload();
-		}
-	}
 }
 
 

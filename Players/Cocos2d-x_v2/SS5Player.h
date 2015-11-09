@@ -611,7 +611,7 @@ namespace SsTexFilterMode
 // 数が大きくなるとプレイヤー生成時に負荷がかかります。
 // エフェクト機能を使用しない場合、0 にするとバッファの生成を行わないため初期化の負荷がなくなります。
 // プレイヤーかエフェクトクラスどちらかのバッファが足りない場合、パーティクルが表示されなくなります。
-#define EFFECTSPRTE_MAX (0)
+#define EFFECTSPRTE_MAX (512)
 
 
 // エフェクト機能を使用する場合は
@@ -975,7 +975,6 @@ protected:
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
 	void checkPlayEndCallback(void);
-	void effectReload(void);
 
 public:
 	//エフェクト用データ
