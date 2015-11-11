@@ -544,16 +544,10 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	}
 
 	//cocos2d-xでの描画
-	if (render->_effectSprite->size() == 0)
+	CustomSprite *sprite = render->_SS5Maneger->getEffectBuffer();
+	if (sprite == 0)	//スプライトが作成されていない
 	{
 		return;
-	}
-	CustomSprite *sprite = render->_effectSprite->at(*render->_effectSpriteCount);
-	*render->_effectSpriteCount = (*render->_effectSpriteCount) + 1;
-	if (*render->_effectSpriteCount >= render->_effectSprite->size())
-	{
-		*render->_effectSpriteCount = render->_effectSprite->size() - 1;
-		return;	//エフェクト用スプライトの空きがない
 	}
 	if (render->_parentSprite)
 	{ 

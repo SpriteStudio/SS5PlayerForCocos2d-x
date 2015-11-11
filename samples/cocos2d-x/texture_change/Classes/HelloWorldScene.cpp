@@ -78,6 +78,13 @@ bool HelloWorld::init()
 	ssbpとpngがあれば再生する事ができますが、Resourcesフォルダにsspjも含まれています。
 
 	**********************************************************************************/
+	//--------------------------------------------------------------------------------
+	//SS5.5から搭載されたエフェクト機能の最適化を行いSS5Managerクラスが追加されました。
+	//プレイヤーが共有するエフェクトバッファを作成します。
+	//バッファは常駐されますのでゲーム起動時等に1度行ってください。
+	auto ss5man = ss::SS5Manager::getInstance();
+	ss5man->createEffectBuffer(1024);			//エフェクト用バッファの作成
+	//--------------------------------------------------------------------------------
 		
 	//リソースマネージャの作成
 	auto resman = ss::ResourceManager::getInstance();
@@ -90,7 +97,7 @@ bool HelloWorld::init()
 	//プレイヤーにリソースを割り当て
 	ssplayer->setData("comipo");        // ssbpファイル名（拡張子不要）
 	//再生するモーションを設定
-	ssplayer->play("comipo/idle");				 // アニメーション名を指定(ssae名/アニメーション名も可能、詳しくは後述)
+	ssplayer->play("comipo/idle");				 // アニメーション名を指定(ssae名/アニメーション名)
 
 	//アニメの位置を設定
 	ssplayer->setPosition(visibleSize.width / 2, visibleSize.height / 2);

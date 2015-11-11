@@ -74,11 +74,18 @@ bool HelloWorld::init()
 	/**********************************************************************************
 
 	SSアニメ表示のサンプルコード
-	Visual Studio Express 2013 for Windows Desktop、cocos2d-x Ver3.2で動作を確認しています。
+	Visual Studio Express 2013 for Windows Desktopで動作を確認しています。
 	ssbpとpngがあれば再生する事ができますが、Resourcesフォルダにsspjも含まれています。
 
 	**********************************************************************************/
-		
+	//--------------------------------------------------------------------------------
+	//SS5.5から搭載されたエフェクト機能の最適化を行いSS5Managerクラスが追加されました。
+	//プレイヤーが共有するエフェクトバッファを作成します。
+	//バッファは常駐されますのでゲーム起動時等に1度行ってください。
+	auto ss5man = ss::SS5Manager::getInstance();
+	ss5man->createEffectBuffer(1024);			//エフェクト用バッファの作成
+	//--------------------------------------------------------------------------------
+
 	//リソースマネージャの作成
 	auto resman = ss::ResourceManager::getInstance();
 	//プレイヤーの作成
@@ -90,7 +97,7 @@ bool HelloWorld::init()
 	//プレイヤーにリソースを割り当て
 	ssplayer->setData("character_template1");        // ssbpファイル名（拡張子不要）
 	//再生するモーションを設定
-	ssplayer->play("character_template_3head/stance");				 // アニメーション名を指定(ssae名/アニメーション名も可能、詳しくは後述)
+	ssplayer->play("character_template_3head/stance");				 // アニメーション名を指定(ssae名/アニメーション名)
 
 	//アニメの位置を設定
 	ssplayer->setPosition(visibleSize.width / 2, visibleSize.height / 2);

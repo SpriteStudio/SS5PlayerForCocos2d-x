@@ -1241,6 +1241,115 @@ int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
 }
 
 
+/**
+* SS5Manager
+*/
+static SS5Manager* defaultSS5ManegerInstance = nullptr;
+SS5Manager* SS5Manager::getInstance()
+{
+	if (!defaultSS5ManegerInstance)
+	{
+		defaultSS5ManegerInstance = SS5Manager::create();
+	}
+	return defaultSS5ManegerInstance;
+}
+
+SS5Manager::SS5Manager(void)
+{
+	//エフェクトバッファの作成
+	_effectSpriteCount = 0;
+	_effectSprite.clear();		//デストラクタのみ行う
+	_isUpdate = true;
+	_useOffscreenRendering = false;
+}
+
+SS5Manager::~SS5Manager()
+{
+	releseEffectBuffer();
+}
+
+SS5Manager* SS5Manager::create()
+{
+	SS5Manager* obj = new SS5Manager();
+	return obj;
+}
+
+void SS5Manager::createEffectBuffer(int buffSize)
+{
+	//エフェクトバッファの解放
+	releseEffectBuffer();
+
+	//エフェクト用パーツ生成
+	if (_effectSprite.size() == 0)
+	{
+		for (auto i = 0; i < buffSize; i++)
+		{
+			CustomSprite* sprite = CustomSprite::create();
+			sprite->_parent = nullptr;
+			sprite->setVisible(false);
+
+			_effectSprite.push_back(sprite);
+		}
+	}
+}
+
+void SS5Manager::releseEffectBuffer()
+{
+	//エフェクトバッファの解放
+	int i;
+	for (i = 0; i < _effectSprite.size(); i++)	//
+	{
+		CustomSprite *sp = _effectSprite.at(i);
+		sp->removeFromParentAndCleanup(true);
+	}
+	_effectSpriteCount = 0;
+	_effectSprite.clear();
+}
+
+//各シーンのアップデートで必ず呼び出してください
+void SS5Manager::update()
+{
+	// エフェクトのアップデート
+	if (_isUpdate == true)
+	{
+		//スプライトをすべて非表示にする
+		int i = 0;
+		for (i = 0; i < _effectSpriteCount; i++)	//前回更新した分だけ初期化する
+		{
+			CustomSprite *sp = _effectSprite.at(i);
+			sp->setVisible(false);
+			sp->removeFromParentAndCleanup(false);
+		}
+		_effectSpriteCount = 0;
+	}
+	_isUpdate = false;
+}
+
+//この関数はプレイヤー内部で使用します。ゲームから直接呼び出しません。
+CustomSprite* SS5Manager::getEffectBuffer()
+{
+	CustomSprite* sp = 0;
+	if ((_effectSprite.size() > 0) && (_effectSpriteCount < _effectSprite.size()))
+	{
+		sp = _effectSprite.at(_effectSpriteCount);
+		_effectSpriteCount++;
+	}
+
+	return(sp);
+}
+
+//この関数はプレイヤー内部で使用します。ゲームから直接呼び出しません。
+void SS5Manager::setUpdateFlag()
+{
+	if (_useOffscreenRendering == false)
+	{
+		_isUpdate = true;
+	}
+}
+void SS5Manager::setUseOffscreenRendering(bool use)
+{
+	_useOffscreenRendering = use;
+}
 
 
 /**
@@ -1272,7 +1381,6 @@ Player::Player(void)
 	, _col_b(255)
 	, _instanceOverWrite(false)
 	, _delegate(0)
-	, _effectSpriteCount(0)
 {
 	int i;
 	for (i = 0; i < PART_VISIBLE_MAX; i++)
@@ -1299,6 +1407,7 @@ Player* Player::create(ResourceManager* resman)
 	if (obj && obj->init())
 	{
 		obj->setResourceManager(resman);
+		obj->setSS5Manager();
 		obj->autorelease();
 		obj->scheduleUpdate();
 		return obj;
@@ -1336,6 +1445,12 @@ void Player::setResourceManager(ResourceManager* resman)
 	}
 	
 	_resman = resman;
+}
+
+void Player::setSS5Manager()
+{
+	SS5Manager* ss5man = SS5Manager::getInstance();
+	_ss5man = ss5man;
 }
 
 int Player::getMaxFrame() const
@@ -1496,6 +1611,7 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	_isPausing = false;
 	_prevDrawFrameNo = -1;
 	_isPlayFirstUserdataChack = true;
+	_isPlayFirstUpdate = true;
 	_animefps = _currentAnimeRef->animationData->fps;
 
 	setFrame(_playingFrame);
@@ -1533,6 +1649,9 @@ void Player::setDelegate(SSPlayerDelegate* delegate)
 
 void Player::update(float dt)
 {
+	//SS5Playerの定時処理
+	_ss5man->update();
+
 	updateFrame(dt);
 }
 
@@ -1698,18 +1817,6 @@ void Player::allocParts(int numParts, bool useCustomShaderProgram)
 		}
 	}
 
-	//エフェクト用パーツ生成
-	if (_effectSprite.size() == 0)
-	{
-		for (auto i = 0; i < EFFECTSPRTE_MAX; i++)
-		{
-			CustomSprite* sprite = CustomSprite::create();
-			sprite->_parent = NULL;
-
-			_effectSprite.push_back(sprite);
-		}
-	}
-
 	if (m_pChildren && m_pChildren->count() > 0)
 	{
 		CCObject* child;
@@ -1728,7 +1835,6 @@ void Player::releaseParts()
 	// remove children CCSprite objects.
 	removeAllChildrenWithCleanup(true);
 	_parts.clear();
-	_effectSprite.clear();		//デストラクタのみ行う
 }
 
 void Player::setPartsParentage()
@@ -1787,8 +1893,7 @@ void Player::setPartsParentage()
 				sprite->refEffect = er;
 				sprite->refEffect->setParentAnimeState(&sprite->partState);
 				sprite->refEffect->setEffectData(effectmodel);
-				sprite->refEffect->setEffectSprite(&_effectSprite);	//エフェクトクラスに渡す都合上publicにしておく
-				sprite->refEffect->setEffectSpriteCount(&_effectSpriteCount);	//エフェクトクラスに渡す都合上publicにしておく
+				sprite->refEffect->setSS5Maneger(_ss5man);
 
 				sprite->refEffect->setSeed(rand());
 				sprite->refEffect->reload();
@@ -2906,90 +3011,84 @@ void Player::setFrame(int frameNo)
 		}
 	}
 	// エフェクトのアップデート
-	//スプライトをすべて非表示にする
-	int i = 0;
-	//	for (i = 0; i < _effectSprite.size(); i++)
-	for (i = 0; i < _effectSpriteCount; i++)	//前回更新した分だけ初期化する
+	if (_isPlayFirstUpdate == false)
 	{
-		CustomSprite *sp = _effectSprite.at(i);
-		sp->setVisible(false);
-		sp->removeFromParentAndCleanup(false);
-	}
-	_effectSpriteCount = 0;
-	for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
-	{
-		const PartData* partData = &parts[partIndex];
-		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
-
-		//エフェクトのアップデート
-		if (sprite->refEffect)
+		for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
 		{
-			sprite->refEffect->setParentSprite(sprite);
-			if (sprite->_state.isVisibled == false)
-			{
-				//パーツが非表示の場合はエフェクトをリセットする
-				if (sprite->refEffect->getPlayStatus() == true)
-				{
-					//毎回行うと負荷がかかるので、前回が再生中であればリセット
-					sprite->refEffect->setSeed(rand());
-					sprite->refEffect->reload();
-					sprite->refEffect->stop();
-				}
-			}
-			else{
-				//パーツのステータスの更新
-				sprite->partState.alpha = sprite->_state.opacity / 255.0f;
-				int matindex = 0;
-				for (matindex = 0; matindex < 16; matindex++)
-				{
-					sprite->partState.matrix[matindex] = sprite->_mat[matindex];
-				}
-				sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
+			const PartData* partData = &parts[partIndex];
+			CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
 
-				//エフェクトアップデート
-				if (frameNo != _prevDrawFrameNo)
+			//エフェクトのアップデート
+			if (sprite->refEffect)
+			{
+				sprite->refEffect->setParentSprite(sprite);
+				if (sprite->_state.isVisibled == false)
 				{
-					sprite->refEffect->setLoop(false);
-					int fdt = 1;
-					if (_prevDrawFrameNo < frameNo)			//差分フレームを計算
+					//パーツが非表示の場合はエフェクトをリセットする
+					if (sprite->refEffect->getPlayStatus() == true)
 					{
-						fdt = frameNo - _prevDrawFrameNo;
-						if (sprite->refEffect->getPlayStatus() == false)
-						{
-							sprite->refEffect->play();
-							//前回エフェクトの更新をしていない場合は初回を0でアップデートする
-							sprite->refEffect->update(0); //先頭フレームは0でアップデートする
-							fdt = fdt - 1;
-						}
-					}
-					else
-					{
-						//アニメーションループ時
+						//毎回行うと負荷がかかるので、前回が再生中であればリセット
 						sprite->refEffect->setSeed(rand());
 						sprite->refEffect->reload();
-						sprite->refEffect->play();
-						sprite->refEffect->update(0); //先頭フレームは0でアップデートする
-						if (frameNo > 0)
+						sprite->refEffect->stop();
+					}
+				}
+				else{
+					//パーツのステータスの更新
+					sprite->partState.alpha = sprite->_state.opacity / 255.0f;
+					int matindex = 0;
+					for (matindex = 0; matindex < 16; matindex++)
+					{
+						sprite->partState.matrix[matindex] = sprite->_mat[matindex];
+					}
+					sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
+
+					//エフェクトアップデート
+					if (frameNo != _prevDrawFrameNo)
+					{
+						sprite->refEffect->setLoop(false);
+						int fdt = 1;
+						if (_prevDrawFrameNo < frameNo)			//差分フレームを計算
 						{
-							fdt = frameNo - 1;
+							fdt = frameNo - _prevDrawFrameNo;
+							if (sprite->refEffect->getPlayStatus() == false)
+							{
+								sprite->refEffect->play();
+								//前回エフェクトの更新をしていない場合は初回を0でアップデートする
+								sprite->refEffect->update(0); //先頭フレームは0でアップデートする
+								fdt = fdt - 1;
+							}
 						}
 						else
 						{
-							fdt = 0;
-						}
+							//アニメーションループ時
+							sprite->refEffect->setSeed(rand());
+							sprite->refEffect->reload();
+							sprite->refEffect->play();
+							sprite->refEffect->update(0); //先頭フレームは0でアップデートする
+							if (frameNo > 0)
+							{
+								fdt = frameNo - 1;
+							}
+							else
+							{
+								fdt = 0;
+							}
 
+						}
+						sprite->refEffect->play();
+						int f = 0;
+						for (f = 0; f < fdt; f++)
+						{
+							sprite->refEffect->update(1); //先頭から今のフレーム
+						}
 					}
-					sprite->refEffect->play();
-					int f = 0;
-					for (f = 0; f < fdt; f++)
-					{
-						sprite->refEffect->update(1); //先頭から今のフレーム
-					}
+					sprite->refEffect->draw();
 				}
-				sprite->refEffect->draw();
 			}
 		}
 	}
+	_isPlayFirstUpdate = false;
 	_prevDrawFrameNo = frameNo;	//再生したフレームを保存
 
 }
@@ -3270,6 +3369,10 @@ void CustomSprite::setOpacity(GLubyte opacity)
 #if 1
 void CustomSprite::draw(void)
 {
+	//SS5Manegerのエフェクトアップデートを設定
+	auto ss5man = ss::SS5Manager::getInstance();
+	ss5man->setUpdateFlag();
+
 	CC_PROFILER_START_CATEGORY(kCCProfilerCategorySprite, "SSSprite - draw");
 
 

@@ -22,6 +22,7 @@ class SsEffectRenderAtom;
 class SsEffectBehavior;
 class SsEffectRenderer;
 class CustomSprite;
+class SS5Manager;
 
 #define PFMEM_TEST ( 1 )
 
@@ -442,9 +443,8 @@ public:
     std::list<SsEffectDrawBatch*>  drawBatchList;
 
 	//cocos2d-x用エフェクトスプライト
-	cocos2d::Vector<CustomSprite*>		*_effectSprite;
 	bool _isContentScaleFactorAuto;
-	int *_effectSpriteCount;
+	SS5Manager*							_SS5Maneger;
 	CustomSprite						*_parentSprite;
 
 public:
@@ -457,9 +457,8 @@ public:
 	,renderTexture(false)
 	,frameDelta(0)
 	,_isContentScaleFactorAuto(true)
-	,_effectSpriteCount(0)
+	, _SS5Maneger(0)
 	,_parentSprite(0)
-	,_effectSprite(0)
 #endif
 	{}
 
@@ -511,8 +510,7 @@ public:
 
 
 	//cocos側のエフェクトスプライトを設定する
-	void setEffectSprite(cocos2d::Vector<CustomSprite*>	*spriteVec) { _effectSprite = spriteVec; }
-	void setEffectSpriteCount(int *buff) { _effectSpriteCount = buff; }
+	void setSS5Maneger(SS5Manager *ss5mng) { _SS5Maneger = ss5mng; }
 	void setContentScaleEneble(bool eneble){ _isContentScaleFactorAuto = eneble; }
 	void setParentSprite(CustomSprite* sprite){ _parentSprite = sprite; }
 

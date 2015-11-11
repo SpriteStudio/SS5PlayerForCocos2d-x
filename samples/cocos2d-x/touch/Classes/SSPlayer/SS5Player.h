@@ -14,7 +14,18 @@ Cocos2d-X Ver3.8に対応しています。
 - Quick start
 
   #include "SS5Player.h"
- 
+
+  //X、Y回転を使用した場合にパースをかけない場合は
+  //applicationDidFinishLaunchingb内で平行投影の設定を行ってください。
+  director->setProjection(kCCDirectorProjection2D);
+
+  //プレイヤーが共有するエフェクトバッファを作成します。
+  //バッファは常駐されますのでゲーム起動時等に1度行ってください。
+  auto ss5man = ss::SS5Manager::getInstance();
+  ss5man->createEffectBuffer(1024);			//エフェクト用バッファの作成
+
+  -------
+
   auto resman = ss::ResourceManager::getInstance();
   resman->addData("sample.ssbp");			// ssbpの読み込み
 
@@ -29,8 +40,6 @@ Cocos2d-X Ver3.8に対応しています。
 
   X回転、Y回転を使用する場合、アプリケーションの初期化で平行投影を設定しないとSS5と描画結果が異なります。
   Z回転とXまたはY回転を同時に行うとSS5と描画結果が異なります。
-  //平行投影の設定
-  director->setProjection(kCCDirectorProjection2D);
 
  使用するアニメーションに合わせて Playerクラス定義部分にある設定用定数を変更してください。
 
@@ -372,6 +381,80 @@ protected:
 };
 
 
+/**
+* SS5Manager
+*/
+class SS5Manager : public cocos2d::Ref
+{
+public:
+
+	/**
+	* デフォルトインスタンスを取得します.
+	*
+	* @return デフォルトのSS5Managerインスタンス
+	*/
+	static SS5Manager* getInstance();
+
+	/**
+	* マネージャ定時処理
+	* 各シーンのアップデートで必ず呼び出してください。
+	* 
+	*/
+	void update();
+
+	/**
+	* 新たなSS5Managerインスタンスを構築します.
+	*
+	* @return SS5Managerインスタンス
+	*/
+	static SS5Manager* create();
+
+	/**
+	* エフェクト用バッファを作成します。
+	* この関数を呼び出さない場合エフェクトは表示されません。
+	* 作成したバッファを全プレイヤーで共用します。
+	* バッファサイズを超える個数のパーティクルが表示されると途中から表示されなくなります。
+	* エフェクト機能を使用する場合はゲームの初期化等で1度呼び出してください。
+	* 再度呼び出すと使用するバッファをリサイズします。
+	*
+	* @param  buffSize       作成するバッファサイズ
+	*/
+	void createEffectBuffer( int buffSize = 1024);
+
+
+	/**
+	* 空いているエフェクト用バッファを取得します。
+	* プレイヤー内部で使用されます。ゲームから呼び出す必要はありません
+	*/
+	CustomSprite* getEffectBuffer();
+
+	/**
+	* 次回アップデートが必要な事を設定します。
+	* プレイヤー内部で使用されます。ゲームから呼び出す必要はありません
+	*/
+	void setUpdateFlag();
+
+	/**
+	* オフスクリーンレンダリング中かを設定します。
+	* プレイヤー内部で使用されます。ゲームから呼び出す必要はありません
+	*/
+	void setUseOffscreenRendering(bool use);
+
+
+public:
+	SS5Manager(void);
+	virtual ~SS5Manager();
+
+
+protected:
+	//エフェクト用データ
+	cocos2d::Vector<CustomSprite*>	_effectSprite;		
+	int								_effectSpriteCount;	
+	bool							_isUpdate;
+	bool							_useOffscreenRendering;
+
+	void releseEffectBuffer();
+};
 
 /**
  * UserData
@@ -601,13 +684,6 @@ namespace SsTexFilterMode
 #define PART_VISIBLE_MAX (512)
 
 
-// プレイヤーが保持するエフェクトスプライト数
-// 数が大きくなるとプレイヤー生成時に負荷がかかります。
-// エフェクト機能を使用しない場合、0 にするとバッファの生成を行わないため初期化の負荷がなくなります。
-// プレイヤーかエフェクトクラスどちらかのバッファが足りない場合、パーティクルが表示されなくなります。
-#define EFFECTSPRTE_MAX (512)
-
-
 // エフェクト機能を使用する場合は
 // Common/Animator/ssplayer_effect.h
 // に定義されているエフェクトクラスの管理するバッファ定数も参照してください。
@@ -645,6 +721,14 @@ public:
 	 * 再度ResourceManagerインスタンスを設定するまでは再生できなくなります.
 	 */
 	void releaseResourceManager();
+
+
+	/**
+	* 使用するSS5Managerインスタンスを設定します.
+	*
+	*/
+	void setSS5Manager();
+
 
 	/**
 	 * 再生するssbpデータのdataKeyを設定します.
@@ -985,11 +1069,6 @@ protected:
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
 
-public:
-	//エフェクト用データ
-	cocos2d::Vector<CustomSprite*>	_effectSprite;		//エフェクトクラスに渡す都合上publicにしておく
-	int								_effectSpriteCount;	//エフェクトクラスに渡す都合上publicにしておく
-
 protected:
 	ResourceManager*	_resman;
 	ResourceSet*		_currentRs;
@@ -997,6 +1076,8 @@ protected:
 	std::string			_currentAnimename;
 	AnimeRef*			_currentAnimeRef;
 	cocos2d::Vector<cocos2d::Sprite*>	_parts;
+
+	SS5Manager*			_ss5man;
 
 	bool				_frameSkipEnabled;
 	float				_playingFrame;
@@ -1006,6 +1087,7 @@ protected:
 	bool				_isPlaying;
 	bool				_isPausing;
 	bool				_isPlayFirstUserdataChack;
+	bool				_isPlayFirstUpdate;
 	bool				_isContentScaleFactorAuto;
 	int					_prevDrawFrameNo;
 	bool				_partVisible[PART_VISIBLE_MAX];
