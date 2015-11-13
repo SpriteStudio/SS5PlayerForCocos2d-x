@@ -40,6 +40,18 @@ static void splitPath(std::string& directoty, std::string& filename, const std::
 }
 
 
+//乱数シードに利用するユニークIDを作成します。
+//この値は全てのSS5プレイヤー共通で使用します
+int seedMakeID = 123456;
+//エフェクトに与えるシードを取得する関数
+unsigned int getRandomSeed()
+{
+	seedMakeID++;	//ユニークIDを更新します。
+	//時間＋ユニークIDにする事で毎回シードが変わるようにします。
+	unsigned int rc = (unsigned int)time(0) + (seedMakeID);
+
+	return(rc);
+}
 
 
 
@@ -1847,7 +1859,7 @@ void Player::setPartsParentage()
 				sprite->refEffect->setEffectData(effectmodel);
 				sprite->refEffect->setSS5Maneger(_ss5man);
 
-				sprite->refEffect->setSeed(rand());
+				sprite->refEffect->setSeed(getRandomSeed());
 				sprite->refEffect->reload();
 				sprite->refEffect->stop();
 			}
@@ -3006,7 +3018,7 @@ void Player::setFrame(int frameNo)
 					if (sprite->refEffect->getPlayStatus() == true)
 					{
 						//毎回行うと負荷がかかるので、前回が再生中であればリセット
-						sprite->refEffect->setSeed(rand());
+						sprite->refEffect->setSeed(getRandomSeed());
 						sprite->refEffect->reload();
 						sprite->refEffect->stop();
 					}
@@ -3041,7 +3053,7 @@ void Player::setFrame(int frameNo)
 						else
 						{
 							//アニメーションループ時
-							sprite->refEffect->setSeed(rand());
+							sprite->refEffect->setSeed(getRandomSeed());
 							sprite->refEffect->reload();
 							sprite->refEffect->play();
 							sprite->refEffect->update(0); //先頭フレームは0でアップデートする
