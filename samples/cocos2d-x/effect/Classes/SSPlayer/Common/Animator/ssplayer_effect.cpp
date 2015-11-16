@@ -613,7 +613,7 @@ void	SsEffectRenderParticle::draw(SsEffectRenderer* render)
 	GLubyte b = (GLubyte)(fcolor.b * 255.0f);
 	GLubyte a = (GLubyte)(fcolor.a * 255.0f);
 	sprite->setOpacity(a);
-	cocos2d::Color3B color3 = { r, g, b };
+	cocos2d::Color3B color3( r, g, b );
 	sprite->setColor(color3);
 }
 
