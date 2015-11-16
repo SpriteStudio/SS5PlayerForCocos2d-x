@@ -2607,7 +2607,7 @@ void Player::setFrame(int frameNo)
 
 		//頂点情報の取得
 		GLubyte alpha = (GLubyte)opacity;
-		cocos2d::Color4B color4 = { 0xff, 0xff, 0xff, alpha };
+		cocos2d::Color4B color4( 0xff, 0xff, 0xff, alpha );
 
 		sprite->sethasPremultipliedAlpha(0);	//
 		if (cellRef)
