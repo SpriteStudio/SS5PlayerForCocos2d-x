@@ -1825,7 +1825,12 @@ void Player::setPartsParentage()
 		}
 
 		//インスタンスパーツの生成
-		sprite->removeAllChildrenWithCleanup(true);	//子供のパーツを削除
+
+		if (sprite->_ssplayer)
+		{
+			sprite->_ssplayer->removeFromParentAndCleanup(true);	//子供のパーツを削除
+			sprite->_ssplayer = 0;
+		}
 
 		std::string refanimeName = static_cast<const char*>(ptr(partData->refname));
 		if (refanimeName != "")
@@ -1864,7 +1869,6 @@ void Player::setPartsParentage()
 				sprite->refEffect->stop();
 			}
 		}
-
 	}
 }
 
@@ -2219,7 +2223,7 @@ void Player::offScreenRenderingEnable(bool enable, int width, int height)
 		//オフスクリーンレンダリングテクスチャを作成
 		_offScreenWidth = width;
 		_offScreenHeight = height;
-		_offScreentexture = cocos2d::RenderTexture::create(width, height);
+		_offScreentexture = SSRenderTexture::create(width, height);
 		cocos2d::Texture2D::TexParams texParams;
 		texParams.wrapS = GL_CLAMP_TO_EDGE;
 		texParams.wrapT = GL_CLAMP_TO_EDGE;
@@ -3083,6 +3087,7 @@ void Player::setFrame(int frameNo)
 		if (_offScreentexture)
 		{
 			_ss5man->setUseOffscreenRendering(true);
+			_offScreentexture->setVisible(true);
 			_offScreentexture->beginWithClear(0, 0, 0, 0);
 			for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
 			{
@@ -3095,7 +3100,10 @@ void Player::setFrame(int frameNo)
 					pos.x += _offScreenWidth / 2;
 					pos.y += _offScreenHeight / 2;
 					sprite->setPosition(cocos2d::Point(pos.x, pos.y));
-					sprite->visit();
+					if (sprite->_ssplayer == 0)
+					{ 
+						sprite->visit();
+					}
 				}
 				sprite->setVisible(false);
 			}
@@ -3410,15 +3418,15 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 
     CC_NODE_DRAW_SETUP();
 
-	ccGLBlendFunc(_blendFunc.src, _blendFunc.dst);
+	GL::blendFunc(_blendFunc.src, _blendFunc.dst);
 
 	if (_texture != nullptr)
     {
-		ccGLBindTexture2D(_texture->getName());
+		GL::bindTexture2D(_texture->getName());
     }
     else
     {
-        ccGLBindTexture2D(0);
+		GL::bindTexture2D(0);
     }
     
 	glUniform1i(ssSelectorLocation, _colorBlendFuncNo);
@@ -3430,23 +3438,23 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
     // Attributes
     //
 
-    ccGLEnableVertexAttribs( kCCVertexAttribFlag_PosColorTex );
+	GL::enableVertexAttribs(GL::VERTEX_ATTRIB_FLAG_POS_COLOR_TEX);
 
 
 #define kQuadSize sizeof(_quad.bl)
 	long offset = (long)&_quad;
 
     // vertex
-    int diff = offsetof( ccV3F_C4B_T2F, vertices);
-    glVertexAttribPointer(kCCVertexAttrib_Position, 3, GL_FLOAT, GL_FALSE, kQuadSize, (void*) (offset + diff));
+    int diff = offsetof( V3F_C4B_T2F, vertices);
+	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
 
     // texCoods
-    diff = offsetof( ccV3F_C4B_T2F, texCoords);
-    glVertexAttribPointer(kCCVertexAttrib_TexCoords, 2, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
+    diff = offsetof( V3F_C4B_T2F, texCoords);
+	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
 
     // color
-    diff = offsetof( ccV3F_C4B_T2F, colors);
-    glVertexAttribPointer(kCCVertexAttrib_Color, 4, GL_UNSIGNED_BYTE, GL_TRUE, kQuadSize, (void*)(offset + diff));
+    diff = offsetof( V3F_C4B_T2F, colors);
+	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, kQuadSize, (void*)(offset + diff));
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -3483,6 +3491,32 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 
 
 
+/**
+* SSRenderTexture
+*/
+void SSRenderTexture::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags)
+{
+	//SS5Manegerのエフェクトアップデートを設定
+	auto ss5man = ss::SS5Manager::getInstance();
+	ss5man->setUpdateFlag();
+
+	cocos2d::RenderTexture::draw(renderer, transform, flags);
+	return;
+}
+
+SSRenderTexture* SSRenderTexture::create(int w, int h)
+{
+
+	SSRenderTexture *ret = new (std::nothrow) SSRenderTexture();
+
+	if (ret && ret->initWithWidthAndHeight(w, h, cocos2d::Texture2D::PixelFormat::RGBA8888, 0))
+	{
+		ret->autorelease();
+		return ret;
+	}
+	CC_SAFE_DELETE(ret);
+	return nullptr;
+}
 
 
 

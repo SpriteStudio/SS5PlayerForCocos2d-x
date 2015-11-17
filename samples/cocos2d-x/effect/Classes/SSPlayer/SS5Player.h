@@ -268,6 +268,15 @@ public:
 	virtual const cocos2d::Mat4& getNodeToParentTransform() const;
 };
 
+/**
+* SSRenderTexture
+*/
+class SSRenderTexture : public cocos2d::RenderTexture
+{
+public:
+	virtual void draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags);
+	static  SSRenderTexture* create(int w, int h);
+};
 
 /**
  * ResourceManager
@@ -317,6 +326,7 @@ public:
 	
 	/**
 	 * 指定データを解放します.
+	 * 指定したssbpファイルで管理しているテクスチャも解放されます。
 	 * パス、拡張子を除いたssbp名を指定してください。
 	 *
 	 * @param  dataKey
@@ -324,7 +334,7 @@ public:
 	void removeData(const std::string& ssbpName);
 
 	/**
-	 * 全てのデータを解放します.
+	 * ssbp、テクスチャなどの全てのデータを解放します.
 	 */
 	void removeAllData();
 
@@ -983,7 +993,9 @@ public:
 	* オフスクリーンレンダリングを有効にします。
 	* 有効時は指定したサイズでクリッピングされます。
 	* 一度アニメーションを仮想レンダーにレンダリングしてから描画するため負荷がかかります。
-	* 制限としてカラーブレンドを使用したパーツは描画されませんのでご注意ください。
+	* 制限：
+	*   カラーブレンドを使用したパーツは描画されません。
+	*   インスタンスパーツは描画されません。
 	*
 	* @param  flag				有効：true、無効：false
 	* @param  width				クリッピングするサイズ（横幅）

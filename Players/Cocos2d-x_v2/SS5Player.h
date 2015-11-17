@@ -276,6 +276,15 @@ public:
 public:
 };
 
+/**
+* SSRenderTexture
+*/
+class SSRenderTexture : public cocos2d::CCRenderTexture
+{
+public:
+	virtual void draw();
+	static  SSRenderTexture* create(int w, int h);
+};
 
 /**
  * ResourceManager
@@ -326,6 +335,7 @@ public:
 	
 	/**
 	 * 指定データを解放します.
+	 * 指定したssbpファイルで管理しているテクスチャも解放されます。
 	 * パス、拡張子を除いたssbp名を指定してください。
 	 *
 	 * @param  dataKey
@@ -333,8 +343,8 @@ public:
 	void removeData(const std::string& ssbpName);
 
 	/**
-	 * 全てのデータを解放します.
-	 */
+	* ssbp、テクスチャなどの全てのデータを解放します.
+	*/
 	void removeAllData();
 
 	/**
@@ -990,6 +1000,21 @@ public:
 	*/
 	void getInstanceParam(bool *overWrite, Instance *keyParam);
 
+	/*
+	* オフスクリーンレンダリングを有効にします。
+	* 有効時は指定したサイズでクリッピングされます。
+	* 一度アニメーションを仮想レンダーにレンダリングしてから描画するため負荷がかかります。
+	* 制限：
+	*   カラーブレンドを使用したパーツは描画されません。
+	*   インスタンスパーツは描画されません。
+	*
+	* @param  flag				有効：true、無効：false
+	* @param  width				クリッピングするサイズ（横幅）
+	* @param  height			クリッピングするサイズ（高さ）
+	*/
+	void offScreenRenderingEnable(bool enable, int width, int height);
+
+
 	/** ユーザーデータ、再生終了の通知を受け取る、デリゲートを設定します.
 	 * Set delegate. receive a notification, such as user data.
 	 * プレイヤーを判定する場合、ゲーム側で管理しているss::Playerのアドレスと比較して判定してください。
@@ -1093,6 +1118,9 @@ protected:
 	int					_col_b;
 	bool				_instanceOverWrite;		//インスタンス情報を上書きするか？
 	Instance			_instanseParam;			//インスタンスパラメータ
+	SSRenderTexture*	_offScreentexture;
+	int					_offScreenWidth;
+	int					_offScreenHeight;
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;

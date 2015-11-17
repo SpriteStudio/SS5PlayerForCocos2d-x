@@ -1256,7 +1256,7 @@ int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
 /**
 * SS5Manager
 */
-static SS5Manager* defaultSS5ManegerInstance = nullptr;
+static SS5Manager* defaultSS5ManegerInstance = NULL;
 SS5Manager* SS5Manager::getInstance()
 {
 	if (!defaultSS5ManegerInstance)
@@ -1297,7 +1297,7 @@ void SS5Manager::createEffectBuffer(int buffSize)
 		for (auto i = 0; i < buffSize; i++)
 		{
 			CustomSprite* sprite = CustomSprite::create();
-			sprite->_parent = nullptr;
+			sprite->_parent = NULL;
 			sprite->setVisible(false);
 
 			_effectSprite.push_back(sprite);
@@ -1392,6 +1392,9 @@ Player::Player(void)
 	, _col_g(255)
 	, _col_b(255)
 	, _instanceOverWrite(false)
+	, _offScreentexture(NULL)
+	, _offScreenWidth(0)
+	, _offScreenHeight(0)
 	, _delegate(0)
 {
 	int i;
@@ -1874,7 +1877,11 @@ void Player::setPartsParentage()
 		}
 
 		//インスタンスパーツの生成
-		sprite->removeAllChildrenWithCleanup(true);	//子供のパーツを削除
+		if (sprite->_ssplayer)
+		{
+			sprite->_ssplayer->removeFromParentAndCleanup(true);	//子供のパーツを削除
+			sprite->_ssplayer = 0;
+		}
 
 		std::string refanimeName = static_cast<const char*>(ptr(partData->refname));
 		if (refanimeName != "")
@@ -2234,6 +2241,34 @@ void Player::setColor(int r, int g, int b)
 	_col_r = r;
 	_col_g = g;
 	_col_b = b;
+}
+
+//オフスクリーンレンダリングを有効にします。
+void Player::offScreenRenderingEnable(bool enable, int width, int height)
+{
+	if (_offScreentexture)
+	{
+		_offScreentexture->removeFromParentAndCleanup(true);
+		_offScreentexture = NULL;
+		_offScreenWidth = 0;
+		_offScreenHeight = 0;
+	}
+	if (enable == true)
+	{
+		//オフスクリーンレンダリングテクスチャを作成
+		_offScreenWidth = width;
+		_offScreenHeight = height;
+		_offScreentexture = SSRenderTexture::create(width, height);
+		cocos2d::ccTexParams texParams;
+		texParams.wrapS = GL_CLAMP_TO_EDGE;
+		texParams.wrapT = GL_CLAMP_TO_EDGE;
+		texParams.minFilter = GL_NEAREST;
+		texParams.magFilter = GL_NEAREST;
+		_offScreentexture->getSprite()->getTexture()->setTexParameters(&texParams);
+
+		addChild(_offScreentexture);
+		_offScreentexture->setVisible(true);
+	}
 }
 
 
@@ -3099,6 +3134,33 @@ void Player::setFrame(int frameNo)
 				}
 			}
 		}
+		//オフスクリーンレンダリング対応
+		if (_offScreentexture)
+		{
+			_ss5man->setUseOffscreenRendering(true);
+			_offScreentexture->setVisible(true);
+			_offScreentexture->beginWithClear(0, 0, 0, 0);
+			for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
+			{
+				const PartData* partData = &parts[partIndex];
+				CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
+
+				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
+				{
+					cocos2d::CCPoint pos = sprite->getPosition();
+					pos.x += _offScreenWidth / 2;
+					pos.y += _offScreenHeight / 2;
+					sprite->setPosition(cocos2d::CCPoint(pos.x, pos.y));
+					if (sprite->_ssplayer == 0)
+					{
+						sprite->visit();
+					}
+				}
+				sprite->setVisible(false);
+			}
+			_offScreentexture->end();	//描画開始
+			_ss5man->setUseOffscreenRendering(false);
+		}
 	}
 	_isPlayFirstUpdate = false;
 	_prevDrawFrameNo = frameNo;	//再生したフレームを保存
@@ -3484,5 +3546,32 @@ bool CustomSprite::isFlippedY()
 	return (_flipY);
 }
 
+
+/**
+* SSRenderTexture
+*/
+void SSRenderTexture::draw()
+{
+	//SS5Manegerのエフェクトアップデートを設定
+	auto ss5man = ss::SS5Manager::getInstance();
+	ss5man->setUpdateFlag();
+
+	cocos2d::CCRenderTexture::draw();
+	return;
+}
+
+SSRenderTexture* SSRenderTexture::create(int w, int h)
+{
+
+	SSRenderTexture *pRet = new SSRenderTexture();
+
+	if (pRet && pRet->initWithWidthAndHeight(w, h, cocos2d::kCCTexture2DPixelFormat_RGBA8888, 0))
+	{
+		pRet->autorelease();
+		return pRet;
+	}
+	CC_SAFE_DELETE(pRet);
+	return NULL;
+}
 
 };
