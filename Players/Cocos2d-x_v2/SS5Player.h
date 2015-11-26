@@ -11,6 +11,9 @@
 
 /************************************************************
 Cocos2d-X Ver2.2.6に対応しています。
+対応するssbpフォーマットはバージョン3です。
+Ss5ConverterのフォーマットバージョンはSpriteStudioSDKを参照してください。
+https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%90%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9
 
 - Quick start
  
@@ -566,6 +569,7 @@ struct ResluteState
 	int	part_type;					//パーツ種別
 	int	part_boundsType;			//当たり判定種類
 	int	part_alphaBlendType;		// BlendType
+	int	part_labelcolor;			// ラベルカラー
 };
 
 //含まれるパーツデータフラグ
@@ -690,6 +694,28 @@ namespace SsTexFilterMode
 */
 //固定少数の定数 10=1ドット
 #define DOT (10.0f)
+
+//カラーラベル定数
+#define COLORLABELSTR_NONE		""
+#define COLORLABELSTR_RED		"Red"
+#define COLORLABELSTR_ORANGE	"Orange"
+#define COLORLABELSTR_YELLOW	"Yellow"
+#define COLORLABELSTR_GREEN		"Green"
+#define COLORLABELSTR_BLUE		"Blue"
+#define COLORLABELSTR_VIOLET	"Violet"
+#define COLORLABELSTR_GRAY		"Gray"
+enum
+{
+	COLORLABEL_NONE,		///< 0 なし
+	COLORLABEL_RED,			///< 1 赤
+	COLORLABEL_ORANGE,		///< 2 オレンジ
+	COLORLABEL_YELLOW,		///< 3 黄色
+	COLORLABEL_GREEN,		///< 4 緑
+	COLORLABEL_BLUE,		///< 5 青
+	COLORLABEL_VIOLET,		///< 6 紫
+	COLORLABEL_GRAY,		///< 7 灰色
+};
+
 
 //------------------------------------------------------------------------------
 //プレイヤーの設定定義
@@ -1004,15 +1030,15 @@ public:
 	* オフスクリーンレンダリングを有効にします。
 	* 有効時は指定したサイズでクリッピングされます。
 	* 一度アニメーションを仮想レンダーにレンダリングしてから描画するため負荷がかかります。
+	* サイズを省略した場合、SSで設定した基準枠の範囲が適用されます。
 	* 制限：
 	*   カラーブレンドを使用したパーツは描画されません。
-	*   インスタンスパーツは描画されません。
 	*
 	* @param  flag				有効：true、無効：false
 	* @param  width				クリッピングするサイズ（横幅）
 	* @param  height			クリッピングするサイズ（高さ）
 	*/
-	void offScreenRenderingEnable(bool enable, int width, int height);
+	void offScreenRenderingEnable(bool enable, float width = 0.0f, float height = 0.0f);
 
 
 	/** ユーザーデータ、再生終了の通知を受け取る、デリゲートを設定します.
@@ -1119,8 +1145,8 @@ protected:
 	bool				_instanceOverWrite;		//インスタンス情報を上書きするか？
 	Instance			_instanseParam;			//インスタンスパラメータ
 	SSRenderTexture*	_offScreentexture;
-	int					_offScreenWidth;
-	int					_offScreenHeight;
+	float				_offScreenWidth;
+	float				_offScreenHeight;
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;

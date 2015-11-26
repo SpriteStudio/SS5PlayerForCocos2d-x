@@ -15,7 +15,7 @@ namespace ss
  */
 
 static const ss_u32 DATA_ID = 0x42505353;
-static const ss_u32 DATA_VERSION = 2;
+static const ss_u32 DATA_VERSION = 3;
 
 /**
  * utilites
@@ -1996,6 +1996,40 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 					result.part_type = partData->type;							//パーツ種別
 					result.part_boundsType = partData->boundsType;				//当たり判定種類
 					result.part_alphaBlendType = partData->alphaBlendType;		// BlendType
+					//ラベルカラー
+					std::string colorName = static_cast<const char*>(ptr(partData->colorLabel));
+					if (colorName == COLORLABELSTR_NONE)
+					{
+						result.part_labelcolor = COLORLABEL_NONE;
+					}
+					if (colorName == COLORLABELSTR_RED)
+					{
+						result.part_labelcolor = COLORLABEL_RED;
+					}
+					if (colorName == COLORLABELSTR_ORANGE)
+					{
+						result.part_labelcolor = COLORLABEL_ORANGE;
+					}
+					if (colorName == COLORLABELSTR_YELLOW)
+					{
+						result.part_labelcolor = COLORLABEL_YELLOW;
+					}
+					if (colorName == COLORLABELSTR_GREEN)
+					{
+						result.part_labelcolor = COLORLABEL_GREEN;
+					}
+					if (colorName == COLORLABELSTR_BLUE)
+					{
+						result.part_labelcolor = COLORLABEL_BLUE;
+					}
+					if (colorName == COLORLABELSTR_VIOLET)
+					{
+						result.part_labelcolor = COLORLABEL_VIOLET;
+					}
+					if (colorName == COLORLABELSTR_GRAY)
+					{
+						result.part_labelcolor = COLORLABEL_GRAY;
+					}
 
 					rc = true;
 					break;
@@ -2209,30 +2243,41 @@ void Player::setColor(int r, int g, int b)
 }
 
 //オフスクリーンレンダリングを有効にします。
-void Player::offScreenRenderingEnable(bool enable, int width, int height)
+void Player::offScreenRenderingEnable(bool enable, float width, float height)
 {
-	if (_offScreentexture)
+	if (_currentAnimeRef)
 	{
-		_offScreentexture->removeFromParentAndCleanup(true);
-		_offScreentexture = nullptr;
-		_offScreenWidth = 0;
-		_offScreenHeight = 0;
-	}
-	if (enable == true)
-	{
-		//オフスクリーンレンダリングテクスチャを作成
-		_offScreenWidth = width;
-		_offScreenHeight = height;
-		_offScreentexture = SSRenderTexture::create(width, height);
-		cocos2d::Texture2D::TexParams texParams;
-		texParams.wrapS = GL_CLAMP_TO_EDGE;
-		texParams.wrapT = GL_CLAMP_TO_EDGE;
-		texParams.minFilter = GL_NEAREST;
-		texParams.magFilter = GL_NEAREST;
-		_offScreentexture->getSprite()->getTexture()->setTexParameters(texParams);
+		if (_offScreentexture)
+		{
+			_offScreentexture->removeFromParentAndCleanup(true);
+			_offScreentexture = nullptr;
+			_offScreenWidth = 0.0f;
+			_offScreenHeight = 0.0f;
+		}
+		if (enable == true)
+		{
+			//オフスクリーンレンダリングテクスチャを作成
+			if (width == 0.0f)
+			{
+				width = _currentAnimeRef->animationData->canvasSizeW;
+			}
+			if (height == 0.0f)
+			{
+				height = _currentAnimeRef->animationData->canvasSizeH;
+			}
+			_offScreenWidth = width;
+			_offScreenHeight = height;
+			_offScreentexture = SSRenderTexture::create(width, height);
+			cocos2d::Texture2D::TexParams texParams;
+			texParams.wrapS = GL_CLAMP_TO_EDGE;
+			texParams.wrapT = GL_CLAMP_TO_EDGE;
+			texParams.minFilter = GL_NEAREST;
+			texParams.magFilter = GL_NEAREST;
+			_offScreentexture->getSprite()->getTexture()->setTexParameters(texParams);
 
-		addChild(_offScreentexture);
-		_offScreentexture->setVisible(true);
+			addChild(_offScreentexture);
+			_offScreentexture->setVisible(true);
+		}
 	}
 }
 
@@ -2329,6 +2374,17 @@ void Player::setFrame(int frameNo)
 		z = z / DOT;
 
 		_partIndex[index] = partIndex;
+
+		//オフスクリーンレンダリング時はrootパーツの位置を画面の中央に移動させる
+		if (_offScreentexture)
+		{
+			if (partIndex == 0)
+			{
+				x += _offScreenWidth / 2.0f;
+				y += _offScreenHeight / 2.0f;
+			}
+		}
+
 
 		//インスタンスパーツのパラメータを加える
 		//不透明度はすでにコンバータで親の透明度が計算されているため
@@ -3093,17 +3149,9 @@ void Player::setFrame(int frameNo)
 			{
 				const PartData* partData = &parts[partIndex];
 				CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
-
 				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
 				{ 
-					cocos2d::Vec2 pos = sprite->getPosition();
-					pos.x += _offScreenWidth / 2;
-					pos.y += _offScreenHeight / 2;
-					sprite->setPosition(cocos2d::Point(pos.x, pos.y));
-					if (sprite->_ssplayer == 0)
-					{ 
-						sprite->visit();
-					}
+					sprite->visit();
 				}
 				sprite->setVisible(false);
 			}
