@@ -3199,8 +3199,7 @@ void Player::setFrame(int frameNo)
 			_offScreentexture->beginWithClear(0, 0, 0, 0);
 			for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
 			{
-				const PartData* partData = &parts[partIndex];
-				CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
+				CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(_partIndex[partIndex]));
 				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
 				{
 					sprite->visit();
