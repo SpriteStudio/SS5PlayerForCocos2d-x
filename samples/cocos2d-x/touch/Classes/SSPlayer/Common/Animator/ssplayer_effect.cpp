@@ -63,22 +63,57 @@ static  int seed_table[] =
 //------------------------------------------------------------------------------
 //	ユーティリティ
 //------------------------------------------------------------------------------
+SsEffectDrawBatch*	SsEffectRenderer::findBatchListSub(SsEffectNode* n)
+{
+	SsEffectDrawBatch* bl = 0;
+	foreach( std::list<SsEffectDrawBatch*> , drawBatchList , e )
+	{
+		if ( (*e)->targetNode == n )
+		{
+			bl = (*e);
+			return bl;
+		}
+	}
+
+	return bl;
+}
+
+
+SsEffectDrawBatch*	SsEffectRenderer::findBatchList(SsEffectNode* n)
+{
+
+	SsEffectDrawBatch* bl = 0;//findBatchListSub(n);
+	if ( bl ==0 )
+	{
+		if ( SSEFFECTRENDER_BACTH_MAX <= dpr_pool_count ){
+				return 0;
+		}
+
+		bl = &drawPr_pool[dpr_pool_count];
+
+		dpr_pool_count++;
+		bl->targetNode = n;
+	}
+
+	return bl;
+
+}
 
 //------------------------------------------------------------------------------
 //要素生成関数
 //------------------------------------------------------------------------------
-SsEffectRenderAtom* SsEffectRenderer::CreateAtom(unsigned int seed, SsEffectRenderAtom* parent, SsEffectNode* node)
+SsEffectRenderAtom* SsEffectRenderer::CreateAtom( unsigned int seed , SsEffectRenderAtom* parent , SsEffectNode* node )
 {
 	SsEffectRenderAtom* ret = 0;
-	SsEffectNodeType::_enum type = node->GetType();
+	SsEffectNodeType::_enum type = node->GetType(); 
 
 
-	if (type == SsEffectNodeType::particle)
+	if ( type == SsEffectNodeType::particle )
 	{
 #if PFMEM_TEST
-		if (SSEFFECTRENDER_PARTICLE_MAX <= pa_pool_count)
+		if ( SSEFFECTRENDER_PARTICLE_MAX <= pa_pool_count )
 		{
-			return 0;
+			 return 0;
 		}
 		SsEffectRenderParticle* p = &pa_pool[pa_pool_count];
 		p->InitParameter();
@@ -91,26 +126,27 @@ SsEffectRenderAtom* SsEffectRenderer::CreateAtom(unsigned int seed, SsEffectRend
 		SsEffectRenderParticle* p = new SsEffectRenderParticle( node , parent );
 #endif
 
-		updatelist.push_back(p);
-		createlist.push_back(p);
+		updatelist.push_back( p );
+		createlist.push_back( p );
 		SsEffectRenderEmitter*	em = (SsEffectRenderEmitter*)parent;
-		em->myBatchList->drawlist.push_back(p);
-
+        em->myBatchList->drawlist.push_back( p );
+	
 		ret = p;
 	}
 
 
-	if (type == SsEffectNodeType::emmiter)
+	if ( type == SsEffectNodeType::emmiter )
 	{
 
 #if PFMEM_TEST
-		if (SSEFFECTRENDER_EMMITER_MAX <= em_pool_count)
+		if ( SSEFFECTRENDER_EMMITER_MAX <= em_pool_count )
 		{
 			return 0;
 		}
-		if (SSEFFECTRENDER_EMMITER_MAX <= dpr_pool_count){
-			return 0;
+		if ( SSEFFECTRENDER_BACTH_MAX <= dpr_pool_count ){
+				return 0;
 		}
+
 		SsEffectRenderEmitter* p = &em_pool[em_pool_count];
 
 
@@ -124,50 +160,21 @@ SsEffectRenderAtom* SsEffectRenderer::CreateAtom(unsigned int seed, SsEffectRend
 #else
 		SsEffectRenderEmitter* p = new SsEffectRenderEmitter( node , parent);
 #endif
-		p->setMySeed(seed);
-		p->TrushRandom(em_pool_count % 9);
+		p->setMySeed( seed );
+		p->TrushRandom( em_pool_count%9 );
 
-		SsEffectFunctionExecuter::initalize(&p->data->behavior, p);
+		SsEffectFunctionExecuter::initalize( &p->data->behavior , p );
 
 		//表示に必要な情報のコピー
 		p->dispCell.refCell = p->data->behavior.refCell;
 		p->dispCell.blendType = p->data->behavior.blendType;
-		updatelist.push_back(p);
-		createlist.push_back(p);
 
-#if 1
+		updatelist.push_back( p );
+		createlist.push_back( p );
+
+
 		//バッチリストを調べる
-		SsEffectDrawBatch* bl = 0;
-
-		foreach(std::list<SsEffectDrawBatch*>, drawBatchList, e)
-		{
-			if ((*e)->targetNode == node)
-			{
-				bl = (*e);
-			}
-		}
-
-		if (bl == 0)
-		{
-			if (SSEFFECTRENDER_BACTH_MAX <= dpr_pool_count){
-				return 0;
-			}
-
-			bl = &drawPr_pool[dpr_pool_count];
-
-			dpr_pool_count++;
-			bl->targetNode = node;
-		}
-#else
-		if (SSEFFECTRENDER_BACTH_MAX <= dpr_pool_count){
-			return 0;
-		}
-
-		SsEffectDrawBatch* bl = 0;
-		bl = &drawPr_pool[dpr_pool_count];
-		dpr_pool_count++;
-
-#endif
+		SsEffectDrawBatch* bl = findBatchList(node);
 
 		p->myBatchList = bl;
 		drawBatchList.push_back( bl );
@@ -297,7 +304,7 @@ bool	SsEffectRenderEmitter::genarate( SsEffectRenderer* render )
 				}
 			}
 			this->intervalleft-=this->interval;
-			if ( this->interval == 0 )return true;
+//			if ( this->interval == 0 )return true;
 		}else{
 			return true;
 		}
@@ -715,9 +722,9 @@ void	SsEffectRenderer::draw()
 		{
 			if ( (*e2) )
 			{
-				if ( (*e2)->m_isLive && (*e2)->_life > 0.0f ){
-					(*e2)->draw(this);
-				}
+				if ( !(*e2)->m_isLive) continue;
+				if( (*e2)->_life <= 0.0f )continue;
+				(*e2)->draw(this);
 			}
 		}
 
