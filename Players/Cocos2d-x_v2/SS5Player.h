@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.2.2
+// SS5Player For Cocos2d-x v1.2.3
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -44,6 +44,9 @@ https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%
   SS5Player cocos2d-x ver2.x版は終了処理で resman を delete してください。
 
   ver2.X系のSS5PlayerはX回転、Y回転に非対応です。
+  プレイヤーの制限についてはこちらのページを参照してください。
+  https://github.com/SpriteStudio/SS5PlayerForCocos2d-x/wiki
+
   使用するアニメーションに合わせて Playerクラス定義部分にある設定用定数を変更してください。
 
 *************************************************************/
@@ -185,6 +188,9 @@ public:
 	//エフェクト用パラメータ
 	SsEffectRenderer*	refEffect;
 	SsPartState			partState;
+
+	//モーションブレンド用ステータス
+	State				_orgState;
 
 public:
 	CustomSprite();
@@ -814,6 +820,35 @@ public:
 	void play(const std::string& animeName, int loop = 0, int startFrameNo = 0);
 
 	/**
+	* 現在再生しているモーションとブレンドしながら再生します。
+	* アニメーション名から再生するデータを選択します.
+	* "ssae名/モーション名で指定してください.
+	* sample.ssaeのanime_1を指定する場合、sample/anime_1となります.
+	* ※ver1.1からモーション名のみで指定する事はできなくなりました。
+	*
+	* ブレンドするアニメーションの条件は以下になります。
+	* ・同じssbp内に含まれている事
+	* ・同じパーツ構成（パーツ順、パーツ数）である事
+	* ・オフスクリーンレンダリングを行っていない
+	* SpriteStudioのフレームコントロールに並ぶパーツを上から順にブレンドしていきます。
+	* パーツ名等のチェックは行なっていませんので遷移元と遷移先アニメのパーツの順番を同じにする必要があります。
+	* 遷移元と遷移先のパーツ構成があっていない場合、正しくブレンドされませんのでご注意ください。
+	*
+	* 合成されるアトリビュートは
+	* 座標X、座標Y、X回転、Y回転、Z回転、スケールX、スケールYのみです。
+	* それ以外のアトリビュートは遷移先アニメの値が適用されます。
+	* インスタンスパーツが参照しているソースアニメはブレンドされません。
+	* エフェクトパーツから発生したパーティクルはブレンドされません。
+	*
+	*
+	* @param  animeName     再生するアニメーション名
+	* @param  loop          再生ループ数の指定. 省略時は0
+	* @param  startFrameNo  再生を開始するフレームNoの指定. 省略時は0
+	* @param  blendTime		モーションブレンドを行う時間、単位は秒　省略時は1秒
+	*/
+	void motionBlendPlay(const std::string& animeName, int loop = 0, int startFrameNo = 0, float blendTime = 0.1f);
+
+	/**
 	 * 再生を中断します.
 	 */
 	void animePause();
@@ -1040,6 +1075,12 @@ public:
 	*/
 	void offScreenRenderingEnable(bool enable, float width = 0.0f, float height = 0.0f);
 
+	/*
+	* パーツ番号に対応したスプライト情報を取得します。
+	*
+	* @param  partIndex			パーツ番号
+	*/
+	CustomSprite* getSpriteData(int partIndex);
 
 	/** ユーザーデータ、再生終了の通知を受け取る、デリゲートを設定します.
 	 * Set delegate. receive a notification, such as user data.
@@ -1109,6 +1150,8 @@ protected:
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
 	void checkPlayEndCallback(void);
+	float parcentVal(float val1, float val2, float parcent);
+	float parcentValRot(float val1, float val2, float parcent);
 
 protected:
 	ResourceManager*	_resman;
@@ -1147,6 +1190,9 @@ protected:
 	SSRenderTexture*	_offScreentexture;
 	float				_offScreenWidth;
 	float				_offScreenHeight;
+	Player*				_motionBlendPlayer;
+	float				_blendTime;
+	float				_blendTimeMax;
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;

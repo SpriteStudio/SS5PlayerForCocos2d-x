@@ -1395,6 +1395,9 @@ Player::Player(void)
 	, _offScreentexture(NULL)
 	, _offScreenWidth(0)
 	, _offScreenHeight(0)
+	, _motionBlendPlayer(NULL)
+	, _blendTime(0.0f)
+	, _blendTimeMax(0.0f)
 	, _delegate(0)
 {
 	int i;
@@ -1632,6 +1635,42 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	setFrame(_playingFrame);
 }
 
+//モーションブレンドしつつ再生
+void Player::motionBlendPlay(const std::string& animeName, int loop, int startFrameNo, float blendTime)
+{
+	if (_currentAnimename != "")
+	{
+		//現在のアニメーションをブレンド用プレイヤーで再生
+		if (_motionBlendPlayer == NULL)
+		{
+			_motionBlendPlayer = ss::Player::create();
+			addChild(_motionBlendPlayer);
+		}
+		int loopnum = _loop;
+		if (_loop > 0)
+		{
+			loopnum = _loop - _loopCount;
+		}
+		_motionBlendPlayer->setData(_currentdataKey);        // ssbpファイル名（拡張子不要）
+		_motionBlendPlayer->play(_currentAnimename, loopnum, getFrameNo());
+		_motionBlendPlayer->setStep(_step);
+		_motionBlendPlayer->setVisible(false);
+
+		if (_loop > 0)
+		{
+			if (_loop == _loopCount)	//アニメは最後まで終了している
+			{
+				_motionBlendPlayer->animePause();
+			}
+		}
+		_blendTime = 0;
+		_blendTimeMax = blendTime;
+
+	}
+	play(animeName, loop, startFrameNo);
+
+}
+
 void Player::animePause()
 {
 	_isPausing = true;
@@ -1766,6 +1805,22 @@ void Player::updateFrame(float dt)
 	{
 		//アニメを手動で更新する場合
 		checkUserData(getFrameNo());
+	}
+
+	//モーションブレンド用アップデート
+	if (_motionBlendPlayer)
+	{
+		//		_motionBlendPlayer->update(dt);
+		_blendTime = _blendTime + dt;
+		if (_blendTime >= _blendTimeMax)
+		{
+			_blendTime = _blendTimeMax;
+			//プレイヤーを削除する
+			//			delete (_motionBlendPlayer);
+			//			_motionBlendPlayer = NULL;
+			removeChild(_motionBlendPlayer, true);
+			_motionBlendPlayer = NULL;
+		}
 	}
 
 	setFrame(getFrameNo());
@@ -2317,6 +2372,19 @@ void Player::offScreenRenderingEnable(bool enable, float width, float height)
 	}
 }
 
+//スプライト情報の取得
+CustomSprite* Player::getSpriteData(int partIndex)
+{
+	CustomSprite* sprite = NULL;
+	if (_parts.size() < partIndex)
+	{
+	}
+	else
+	{
+		sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
+	}
+	return(sprite);
+}
 
 void Player::setFrame(int frameNo)
 {
@@ -2445,6 +2513,22 @@ void Player::setFrame(int frameNo)
 		pivotX += 0.5f;
 		pivotY += 0.5f;
 
+		//モーションブレンド
+		if (_motionBlendPlayer)
+		{
+			CustomSprite* blendSprite = _motionBlendPlayer->getSpriteData(partIndex);
+			if (blendSprite)
+			{
+				float percent = _blendTime / _blendTimeMax;
+				x = parcentVal(x, blendSprite->_orgState.x, percent);
+				y = parcentVal(y, blendSprite->_orgState.y, percent);
+				scaleX = parcentVal(scaleX, blendSprite->_orgState.scaleX, percent);
+				scaleY = parcentVal(scaleY, blendSprite->_orgState.scaleY, percent);
+				rotationX = parcentValRot(rotationX, blendSprite->_orgState.rotationX, percent);
+				rotationY = parcentValRot(rotationY, blendSprite->_orgState.rotationY, percent);
+				rotationZ = parcentValRot(rotationZ, blendSprite->_orgState.rotationZ, percent);
+			}
+		}
 
 		//ステータス保存
 		state.flags = flags;
@@ -2489,6 +2573,7 @@ void Player::setFrame(int frameNo)
 			isVisibled = false;
 		}
 		sprite->setState(state);
+		sprite->_orgState = sprite->_state;
 		this->reorderChild(sprite, index);
 
 		sprite->setPosition(cocos2d::CCPoint(x, y));
@@ -3341,6 +3426,53 @@ void  Player::set_InstanceRotation(float rotX, float rotY, float rotZ)
 	_InstanceRotZ = rotZ;
 }
 
+//割合に応じた中間値を取得します
+float Player::parcentVal(float val1, float val2, float parcent)
+{
+	float sa = val1 - val2;
+	float newval = val2 + (sa * parcent);
+	return (newval);
+}
+float Player::parcentValRot(float val1, float val2, float parcent)
+{
+	int ival1 = (int)(val1 * 10.0f) % 3600;
+	int ival2 = (int)(val2 * 10.0f) % 3600;
+	if (ival1 < 0)
+	{
+		ival1 += 3600;
+	}
+	if (ival2 < 0)
+	{
+		ival2 += 3600;
+	}
+	int islr = ival1 - ival2;
+	if (islr < 0)
+	{
+		islr += 3600;
+	}
+	int inewval;
+	if (islr == 0)
+	{
+		inewval = ival1;
+	}
+	else
+	{
+		if (islr > 1800)
+		{
+			int isa = 3600 - islr;
+			inewval = ival2 - ((float)isa * parcent);
+		}
+		else
+		{
+			int isa = islr;
+			inewval = ival2 + ((float)isa * parcent);
+		}
+	}
+
+
+	float newval = inewval / 10;
+	return (newval);
+}
 
 /**
 * SSPlayerDelegate
