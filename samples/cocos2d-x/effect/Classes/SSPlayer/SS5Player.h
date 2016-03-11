@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.2.3
+// SS5Player For Cocos2d-x v1.2.4
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -9,7 +9,7 @@
 //
 
 /************************************************************
-Cocos2d-X Ver3.8に対応しています。
+Cocos2d-X Ver3.10に対応しています。
 対応するssbpフォーマットはバージョン3です。
 Ss5ConverterのフォーマットバージョンはSpriteStudioSDKを参照してください。
 https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%90%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9

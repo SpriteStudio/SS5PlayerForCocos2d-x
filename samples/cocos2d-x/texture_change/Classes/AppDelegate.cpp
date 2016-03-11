@@ -1,9 +1,9 @@
-ï»¿#include "AppDelegate.h"
+#include "AppDelegate.h"
 #include "HelloWorldScene.h"
 
 USING_NS_CC;
 
-static cocos2d::Size designResolutionSize = cocos2d::Size(480, 320);
+static cocos2d::Size designResolutionSize = cocos2d::Size(1024, 1024);
 static cocos2d::Size smallResolutionSize = cocos2d::Size(480, 320);
 static cocos2d::Size mediumResolutionSize = cocos2d::Size(1024, 768);
 static cocos2d::Size largeResolutionSize = cocos2d::Size(2048, 1536);
@@ -39,9 +39,16 @@ bool AppDelegate::applicationDidFinishLaunching() {
     auto director = Director::getInstance();
     auto glview = director->getOpenGLView();
     if(!glview) {
-        glview = GLViewImpl::create("My Game");
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32) || (CC_TARGET_PLATFORM == CC_PLATFORM_MAC) || (CC_TARGET_PLATFORM == CC_PLATFORM_LINUX)
+        glview = GLViewImpl::createWithRect("MyGame310", Rect(0, 0, designResolutionSize.width, designResolutionSize.height));
+#else
+        glview = GLViewImpl::create("MyGame310");
+#endif
         director->setOpenGLView(glview);
     }
+
+	//•½s“Š‰eÝ’è‚ð’Ç‰Á
+	director->setProjection(kCCDirectorProjection2D);
 
     // turn on display FPS
     director->setDisplayStats(true);
@@ -49,19 +56,9 @@ bool AppDelegate::applicationDidFinishLaunching() {
     // set FPS. the default value is 1.0/60 if you don't call this
     director->setAnimationInterval(1.0 / 60);
 
-	//Sprite Studio Smple code add ---
-	//ç”»é¢ã‚µã‚¤ã‚ºã‚’è¨­å®š
-	int h = 1024;
-	int w = 1024;
-	glview->setFrameSize(h, w);
-	glview->setDesignResolutionSize(h, w, ResolutionPolicy::NO_BORDER);
-	//å¹³è¡ŒæŠ•å½±
-	director->setProjection(kCCDirectorProjection2D);
-	// Set the design resolution
-//    glview->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, ResolutionPolicy::NO_BORDER);
-	//Sprite Studio Smple code add ---
-
-	Size frameSize = glview->getFrameSize();
+    // Set the design resolution
+    glview->setDesignResolutionSize(designResolutionSize.width, designResolutionSize.height, ResolutionPolicy::NO_BORDER);
+    Size frameSize = glview->getFrameSize();
     // if the frame's height is larger than the height of medium size.
     if (frameSize.height > mediumResolutionSize.height)
     {        

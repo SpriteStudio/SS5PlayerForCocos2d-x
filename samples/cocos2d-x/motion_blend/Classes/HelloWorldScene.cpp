@@ -72,6 +72,7 @@ bool HelloWorld::init()
 
     // add the sprite as a child to this layer
     this->addChild(sprite, 0);
+    
 
 	/**********************************************************************************
 
@@ -87,24 +88,24 @@ bool HelloWorld::init()
 	auto ss5man = ss::SS5Manager::getInstance();
 	ss5man->createEffectBuffer(1024);			//エフェクト用バッファの作成
 	//--------------------------------------------------------------------------------
-		
+
 	//リソースマネージャの作成
 	auto resman = ss::ResourceManager::getInstance();
 	//プレイヤーの作成
 	ssplayer = ss::Player::create();
 
 	//アニメデータをリソースに追加
-	//それぞれのプラットフォームに合わせたパスへ変更してください。
-	resman->addData("OPTPiX_SpriteStudio_ParticleEffectSample_150813\\effect_sample.ssbp");
+	resman->addData("character_template_comipo/character_template1.ssbp");
 	//プレイヤーにリソースを割り当て
-	ssplayer->setData("effect_sample");        // ssbpファイル名（拡張子不要）
-	//再生するモーションを設定
-	ssplayer->play("e006/sengeki");				 // アニメーション名を指定(ssae名/アニメーション名)
+	ssplayer->setData("character_template1");						// ssbpファイル名（拡張子不要）
+	//アニメーションの再生
+	ssplayer->play("character_template_3head/stance");				// アニメーションの指定(ssae名/アニメーション名)
 
-	//アニメの位置を設定
+	//アニメーションの表示位置を設定
 	ssplayer->setPosition(visibleSize.width / 2, visibleSize.height / 2);
-	//スケールの変更
-	ssplayer->setScale(1.0f, 1.0f);
+	//スケールの設定
+	ssplayer->setScale(0.5f, 0.5f);
+
 
 	//ユーザーデータコールバックを設定
 	ssplayer->setUserDataCallback(CC_CALLBACK_2(HelloWorld::userDataCallback, this));
@@ -120,18 +121,12 @@ bool HelloWorld::init()
 	this->scheduleUpdate();
 
 
-
     return true;
 }
 
 
 void HelloWorld::menuCloseCallback(Ref* pSender)
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_WP8) || (CC_TARGET_PLATFORM == CC_PLATFORM_WINRT)
-	MessageBox("You pressed the close button. Windows Store Apps do not implement a close button.","Alert");
-    return;
-#endif
-
     Director::getInstance()->end();
 
 #if (CC_TARGET_PLATFORM == CC_PLATFORM_IOS)
@@ -140,10 +135,37 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 }
 
 
+
 //メインループ
+int cnt = 0;
+bool type = false;
 void HelloWorld::update(float delta)
 {
-	// ここに処理を記述
+	int max_frame = ssplayer->getMaxFrame();
+	int now_frame = ssplayer->getFrameNo();
+	{
+		cnt++;
+		if ( (cnt % 180) == 0 )
+		{
+			//モーションブレンド付きアニメーション再生
+			//モーションブレンドを行うためには条件があります。
+			//SS5Player.hのmotionBlendPlay関数のコメントを参照してください。
+			if (type == false)
+			{
+				type = true;
+				ssplayer->motionBlendPlay("character_template_3head/dead1", 1);				 // アニメーションの指定(ssae名/アニメーション名)
+			}
+			else
+			{
+				type = false;
+				ssplayer->motionBlendPlay("character_template_3head/run", 0);				 // アニメーションの指定(ssae名/アニメーション名)
+			}
+		}
+	}
+	{
+		auto str = String::createWithFormat("max:%d, fream:%d", max_frame, now_frame);
+		label->setString(str->getCString());
+	}
 }
 
 //ユーザーデータコールバック
@@ -161,7 +183,6 @@ void HelloWorld::userDataCallback(ss::Player* player, const ss::UserData* data)
 
 }
 
-
 //アニメーション終了コールバック
 void HelloWorld::playEndCallback(ss::Player* player)
 {
@@ -174,7 +195,4 @@ void HelloWorld::playEndCallback(ss::Player* player)
 	//無限ループで再生している場合はコールバックが発生しません。
 
 }
-
-
-
 
