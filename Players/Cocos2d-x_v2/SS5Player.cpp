@@ -40,6 +40,9 @@ static void splitPath(std::string& directoty, std::string& filename, const std::
 }
 
 // printf 形式のフォーマット
+#ifndef va_copy
+#    define va_copy(dest, src) ((dest) = (src))
+#endif
 static std::string Format(const char* format, ...){
 
 	static std::vector<char> tmp(1000);
@@ -1863,6 +1866,12 @@ void Player::allocParts(int numParts, bool useCustomShaderProgram)
 //			CustomSprite* sprite = (CustomSprite*)child;
 			CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(i));
 			removeChild(sprite, true);
+			//エフェクトクラスがある場合は解放する
+			if (sprite->refEffect)
+			{
+				delete sprite->refEffect;
+				sprite->refEffect = 0;
+			}
 
 			for (std::vector<CustomSprite *>::iterator it = _parts.begin(); it != _parts.end();)
 			{
@@ -2295,7 +2304,7 @@ bool Player::changeInstanceAnime(std::string partsname, std::string animename, b
 					if (_currentAnimename != animename)
 					{
 						sprite->_ssplayer->play(animename);
-						setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
+						sprite->_ssplayer->setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
 						sprite->_ssplayer->animeResume();		//アニメ切り替え時にがたつく問題の対応
 						sprite->_liveFrame = 0;					//独立動作の場合再生位置をリセット
 						rc = true;
@@ -2952,7 +2961,7 @@ void Player::setFrame(int frameNo)
 		{
 			bool overWrite;
 			Instance keyParam;
-			getInstanceParam(&overWrite, &keyParam);
+			sprite->_ssplayer->getInstanceParam(&overWrite, &keyParam);
 			//描画
 			int refKeyframe = 0;
 			int refStartframe = 0;
@@ -3510,7 +3519,14 @@ CustomSprite::CustomSprite()
 {}
 
 CustomSprite::~CustomSprite()
-{}
+{
+	//エフェクトクラスがある場合は解放する
+	if (refEffect)
+	{
+		delete refEffect;
+		refEffect = 0;
+	}
+}
 
 cocos2d::CCGLProgram* CustomSprite::getCustomShaderProgram()
 {

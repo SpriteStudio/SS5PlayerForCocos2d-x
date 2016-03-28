@@ -2259,7 +2259,7 @@ bool Player::changeInstanceAnime(std::string partsname, std::string animename, b
 					if (_currentAnimename != animename )
 					{
 						sprite->_ssplayer->play(animename);
-						setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
+						sprite->_ssplayer->setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
 						sprite->_ssplayer->animeResume();		//アニメ切り替え時にがたつく問題の対応
 						sprite->_liveFrame = 0;					//独立動作の場合再生位置をリセット
 						rc = true;
@@ -2922,7 +2922,7 @@ void Player::setFrame(int frameNo)
 		{
 			bool overWrite;
 			Instance keyParam;
-			getInstanceParam(&overWrite, &keyParam);
+			sprite->_ssplayer->getInstanceParam(&overWrite, &keyParam);
 			//描画
 			int refKeyframe = 0;
 			int refStartframe = 0;
@@ -3441,7 +3441,14 @@ CustomSprite::CustomSprite()
 {}
 
 CustomSprite::~CustomSprite()
-{}
+{
+	//エフェクトクラスがある場合は解放する
+	if (refEffect)
+	{
+		delete refEffect;
+		refEffect = 0;
+	}
+}
 
 cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 {
