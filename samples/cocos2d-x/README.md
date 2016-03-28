@@ -10,3 +10,6 @@ ClassesとResourcesフォルダを上書きし、SSPlayerフォルダをプロジェクトに追加してく
 - texture_change  
 アニメーション中のテクスチャをゲーム側から差し替えるサンプルです。  
 
+- instance_change
+インスタンスパーツの参照アニメを変更するサンプルです。  
+
