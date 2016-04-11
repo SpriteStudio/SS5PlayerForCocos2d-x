@@ -156,10 +156,6 @@ struct State
 class CustomSprite : public cocos2d::Sprite
 {
 private:
-	static unsigned int ssSelectorLocation;
-	static unsigned int	ssAlphaLocation;
-	static unsigned int	sshasPremultipliedAlpha;
-
 	static cocos2d::GLProgram* getCustomShaderProgram();
 
 private:

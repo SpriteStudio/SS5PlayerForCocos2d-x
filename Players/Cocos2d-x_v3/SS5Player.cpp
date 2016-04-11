@@ -3422,10 +3422,6 @@ float Player::parcentValRot(float val1, float val2, float parcent)
  * CustomSprite
  */
 
-unsigned int CustomSprite::ssSelectorLocation = 0;
-unsigned int CustomSprite::ssAlphaLocation = 0;
-unsigned int CustomSprite::sshasPremultipliedAlpha = 0;
-
 static const GLchar * ssPositionTextureColor_frag =
 #include "ssShader_frag.h"
 
@@ -3452,45 +3448,15 @@ CustomSprite::~CustomSprite()
 
 cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 {
-	using namespace cocos2d;
-
-	static GLProgram* p = nullptr;
-	static bool constructFailed = false;
-	if (!p && !constructFailed)
-	{
-		p = new GLProgram();
-		p->initWithByteArrays(
-			ccPositionTextureColor_vert,
-			ssPositionTextureColor_frag);
-		p->bindAttribLocation(GLProgram::ATTRIBUTE_NAME_POSITION, GLProgram::VERTEX_ATTRIB_POSITION);
-		p->bindAttribLocation(GLProgram::ATTRIBUTE_NAME_COLOR, GLProgram::VERTEX_ATTRIB_COLOR);
-		p->bindAttribLocation(GLProgram::ATTRIBUTE_NAME_TEX_COORD, GLProgram::VERTEX_ATTRIB_TEX_COORDS);
-
-		if (!p->link())
-		{
-			constructFailed = true;
-			return nullptr;
-		}
-		
-		p->updateUniforms();
-		
-		ssSelectorLocation = glGetUniformLocation(p->getProgram(), "u_selector");
-		ssAlphaLocation = glGetUniformLocation(p->getProgram(), "u_alpha");
-		sshasPremultipliedAlpha = glGetUniformLocation(p->getProgram(), "u_hasPremultipliedAlpha");
-		if (ssSelectorLocation == GL_INVALID_VALUE
-		 || ssAlphaLocation == GL_INVALID_VALUE)
-		{
-			delete p;
-			p = nullptr;
-			constructFailed = true;
-			return nullptr;
-		}
-
-		glUniform1i(ssSelectorLocation, 0);
-		glUniform1f(ssAlphaLocation, 1.0f);
-		glUniform1i(sshasPremultipliedAlpha, 0);
-	}
-	return p;
+    static const char* shaderKey = "SS5PlayerShader";
+    cocos2d::GLProgramCache* glprogramcache = cocos2d::GLProgramCache::getInstance();
+    cocos2d::GLProgram* glprogram = glprogramcache->getGLProgram(shaderKey);
+    if (glprogram == nullptr)
+    {
+        glprogram = cocos2d::GLProgram::createWithByteArrays(cocos2d::ccPositionTextureColor_noMVP_vert, ssPositionTextureColor_frag);
+        glprogramcache->addGLProgram(glprogram, shaderKey);
+    }
+    return glprogram;
 }
 
 CustomSprite* CustomSprite::create()
@@ -3520,12 +3486,12 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 				shaderProgram = _defaultShaderProgram;
 				useCustomShaderProgram = false;
 			}
-			this->setGLProgram(shaderProgram);
+            this->setGLProgramState(cocos2d::GLProgramState::getOrCreateWithGLProgram(shaderProgram));
 			_useCustomShaderProgram = useCustomShaderProgram;
 		}
 		else
 		{
-			this->setGLProgram(_defaultShaderProgram);
+            this->setGLProgramState(cocos2d::GLProgramState::getOrCreateWithGLProgram(_defaultShaderProgram));
 			_useCustomShaderProgram = false;
 		}
 	}
@@ -3593,86 +3559,17 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	if (!_useCustomShaderProgram)
 	{
 		cocos2d::Sprite::draw(renderer, transform, flags);
-		return;
 	}
-	
-	//cocos v3系からspriteのdraw内でレンダーに描画コマンドを積む方式に変わったため、
-	//自前のシェーダーをcocos側に渡してパラメータを設定することが難しい。
-	//カラーブレンドスプライトは表示タイミングで、現在レンダーにたまっている描画コマンドを処理して
-	//描画してしまい直接描画することで描画順を保つことにした
-	renderer->render();	
-
-//    CCASSERT(!m_pobBatchNode, "If CCSprite is being rendered by CCSpriteBatchNode, CCSprite#draw SHOULD NOT be called");
-
-    CC_NODE_DRAW_SETUP();
-
-	GL::blendFunc(_blendFunc.src, _blendFunc.dst);
-
-	if (_texture != nullptr)
-    {
-		GL::bindTexture2D(_texture->getName());
-    }
     else
     {
-		GL::bindTexture2D(0);
+        cocos2d::GLProgramState* pGLProgramState = getGLProgramState();
+        pGLProgramState->setUniformInt("u_selector", _colorBlendFuncNo);
+        pGLProgramState->setUniformFloat("u_alpha", _opacity);
+        pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
+        pGLProgramState->setUniformTexture("u_texture", this->getTexture());
+        cocos2d::Sprite::draw(renderer, transform, flags);
     }
-    
-	glUniform1i(ssSelectorLocation, _colorBlendFuncNo);
-	glUniform1f(ssAlphaLocation, _opacity);
-	glUniform1i(sshasPremultipliedAlpha, _hasPremultipliedAlpha);
-
-
-    //
-    // Attributes
-    //
-
-	GL::enableVertexAttribs(GL::VERTEX_ATTRIB_FLAG_POS_COLOR_TEX);
-
-
-#define kQuadSize sizeof(_quad.bl)
-	long offset = (long)&_quad;
-
-    // vertex
-    int diff = offsetof( V3F_C4B_T2F, vertices);
-	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
-
-    // texCoods
-    diff = offsetof( V3F_C4B_T2F, texCoords);
-	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
-
-    // color
-    diff = offsetof( V3F_C4B_T2F, colors);
-	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, kQuadSize, (void*)(offset + diff));
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    CHECK_GL_ERROR_DEBUG();
-
-
-#if CC_SPRITE_DEBUG_DRAW == 1
-    // draw bounding box
-    Cocos2d_Point vertices[4]={
-        Cocos2d_Point(m_sQuad.tl.vertices.x,m_sQuad.tl.vertices.y),
-        Cocos2d_Point(m_sQuad.bl.vertices.x,m_sQuad.bl.vertices.y),
-        Cocos2d_Point(m_sQuad.br.vertices.x,m_sQuad.br.vertices.y),
-        Cocos2d_Point(m_sQuad.tr.vertices.x,m_sQuad.tr.vertices.y),
-    };
-    ccDrawPoly(vertices, 4, true);
-#elif CC_SPRITE_DEBUG_DRAW == 2
-    // draw texture box
-    Cocos2d_Size s = this->getTextureRect().size;
-    Cocos2d_Point offsetPix = this->getOffsetPosition();
-    Cocos2d_Point vertices[4] = {
-        Cocos2d_Point(offsetPix.x,offsetPix.y), Cocos2d_Point(offsetPix.x+s.width,offsetPix.y),
-        Cocos2d_Point(offsetPix.x+s.width,offsetPix.y+s.height), Cocos2d_Point(offsetPix.x,offsetPix.y+s.height)
-    };
-    ccDrawPoly(vertices, 4, true);
-#endif // CC_SPRITE_DEBUG_DRAW
-
-    CC_INCREMENT_GL_DRAWS(1);
-
     CC_PROFILER_STOP_CATEGORY(kCCProfilerCategorySprite, "CCSprite - draw");
-
 }
 #endif
 
