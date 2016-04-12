@@ -3486,12 +3486,12 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 				shaderProgram = _defaultShaderProgram;
 				useCustomShaderProgram = false;
 			}
-            this->setGLProgramState(cocos2d::GLProgramState::getOrCreateWithGLProgram(shaderProgram));
+            this->setGLProgram(shaderProgram);
 			_useCustomShaderProgram = useCustomShaderProgram;
 		}
 		else
 		{
-            this->setGLProgramState(cocos2d::GLProgramState::getOrCreateWithGLProgram(_defaultShaderProgram));
+            this->setGLProgram(_defaultShaderProgram);
 			_useCustomShaderProgram = false;
 		}
 	}
