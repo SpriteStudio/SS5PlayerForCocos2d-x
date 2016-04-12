@@ -149,6 +149,7 @@ struct State
 	State() { init(); }
 };
 
+#define OLDSHADER_USE 0	//旧バージョンのカスタムシェーダーコード
 
 /**
 * CustomSprite
@@ -156,10 +157,11 @@ struct State
 class CustomSprite : public cocos2d::Sprite
 {
 private:
+#if OLDSHADER_USE
 	static unsigned int ssSelectorLocation;
 	static unsigned int	ssAlphaLocation;
 	static unsigned int	sshasPremultipliedAlpha;
-
+#endif
 	static cocos2d::GLProgram* getCustomShaderProgram();
 
 private:
@@ -168,7 +170,10 @@ private:
 	float				_opacity;
 	int					_hasPremultipliedAlpha;
 	int					_colorBlendFuncNo;
-
+#if OLDSHADER_USE
+#else
+	cocos2d::GLProgramState* _shaderProgramState;
+#endif
 public:
 	cocos2d::Mat4		_mat;
 	State				_state;

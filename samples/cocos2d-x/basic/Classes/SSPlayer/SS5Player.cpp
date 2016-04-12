@@ -3417,15 +3417,14 @@ float Player::parcentValRot(float val1, float val2, float parcent)
 	return (newval);
 }
 
-
 /**
  * CustomSprite
  */
-
+#if OLDSHADER_USE
 unsigned int CustomSprite::ssSelectorLocation = 0;
 unsigned int CustomSprite::ssAlphaLocation = 0;
 unsigned int CustomSprite::sshasPremultipliedAlpha = 0;
-
+#endif 
 static const GLchar * ssPositionTextureColor_frag =
 #include "ssShader_frag.h"
 
@@ -3438,6 +3437,7 @@ CustomSprite::CustomSprite()
 	, _hasPremultipliedAlpha(0)
 	, refEffect(0)
 	, _ssplayer(0)
+	, _shaderProgramState(0)
 {}
 
 CustomSprite::~CustomSprite()
@@ -3452,6 +3452,7 @@ CustomSprite::~CustomSprite()
 
 cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 {
+#if OLDSHADER_USE
 	using namespace cocos2d;
 
 	static GLProgram* p = nullptr;
@@ -3491,6 +3492,18 @@ cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 		glUniform1i(sshasPremultipliedAlpha, 0);
 	}
 	return p;
+#else 
+
+	static const char* shaderKey = "SS5PlayerShader";
+	cocos2d::GLProgramCache* glprogramcache = cocos2d::GLProgramCache::getInstance();
+	cocos2d::GLProgram* glprogram = glprogramcache->getGLProgram(shaderKey);
+	if (glprogram == nullptr)
+	{
+		glprogram = cocos2d::GLProgram::createWithByteArrays(cocos2d::ccPositionTextureColor_noMVP_vert, ssPositionTextureColor_frag);
+		glprogramcache->addGLProgram(glprogram, shaderKey);
+	}
+	return glprogram;
+#endif
 }
 
 CustomSprite* CustomSprite::create()
@@ -3520,7 +3533,16 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 				shaderProgram = _defaultShaderProgram;
 				useCustomShaderProgram = false;
 			}
+#if OLDSHADER_USE
 			this->setGLProgram(shaderProgram);
+#else			
+			if (_shaderProgramState == 0)
+			{
+				_shaderProgramState = cocos2d::GLProgramState::create(shaderProgram);
+			}
+			this->setGLProgramState(_shaderProgramState);
+//			this->setGLProgram(shaderProgram);
+#endif			
 			_useCustomShaderProgram = useCustomShaderProgram;
 		}
 		else
@@ -3576,7 +3598,7 @@ const cocos2d::Mat4& CustomSprite::getNodeToParentTransform() const
 }
 
 
-
+int cont = 0;
 #if 1
 void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags)
 {
@@ -3593,9 +3615,11 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	if (!_useCustomShaderProgram)
 	{
 		cocos2d::Sprite::draw(renderer, transform, flags);
+#if OLDSHADER_USE
 		return;
+#endif		
 	}
-	
+#if OLDSHADER_USE
 	//cocos v3系からspriteのdraw内でレンダーに描画コマンドを積む方式に変わったため、
 	//自前のシェーダーをcocos側に渡してパラメータを設定することが難しい。
 	//カラーブレンドスプライトは表示タイミングで、現在レンダーにたまっている描画コマンドを処理して
@@ -3612,11 +3636,24 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
     {
 		GL::bindTexture2D(_texture->getName());
     }
+#endif
     else
     {
+#if OLDSHADER_USE
 		GL::bindTexture2D(0);
+#else
+
+		cocos2d::GLProgramState* pGLProgramState = getGLProgramState();
+		pGLProgramState->setUniformInt("u_selector", (int)_colorBlendFuncNo);
+		pGLProgramState->setUniformFloat("u_alpha", _opacity);
+		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
+		pGLProgramState->setUniformTexture("u_texture", this->getTexture());
+
+		cocos2d::Sprite::draw(renderer, transform, flags);
+#endif
     }
     
+#if OLDSHADER_USE
 	glUniform1i(ssSelectorLocation, _colorBlendFuncNo);
 	glUniform1f(ssAlphaLocation, _opacity);
 	glUniform1i(sshasPremultipliedAlpha, _hasPremultipliedAlpha);
@@ -3670,7 +3707,7 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 #endif // CC_SPRITE_DEBUG_DRAW
 
     CC_INCREMENT_GL_DRAWS(1);
-
+#endif	// OLDSHADER_USE
     CC_PROFILER_STOP_CATEGORY(kCCProfilerCategorySprite, "CCSprite - draw");
 
 }
