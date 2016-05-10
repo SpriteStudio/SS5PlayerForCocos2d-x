@@ -30,8 +30,7 @@ public:
 		if (ctop == 0)
 		{
 			ctop = c;
-		}
-		else{
+		}else{
 			ctop->addSiblingEnd(c);
 		}
 		c->parent = this;
@@ -42,8 +41,7 @@ public:
 		{
 			c->prev = this;
 			next = c;
-		}
-		else{
+		}else{
 			next->addSiblingEnd(c);
 		}
 
@@ -112,8 +110,10 @@ public:
 	int			lockRandSeed; 	 // ランダムシード固定値
 	bool    	isLockRandSeed;  // ランダムシードを固定するか否か
 	int			fps;             //
-	SsString	   bgcolor;
-	SsString			effectName;
+	SsString	bgcolor;
+	SsString	effectName;
+	int			layoutScaleX;
+	int			layoutScaleY;
 
 public:
 	SsEffectModel() : root(0)
@@ -130,6 +130,10 @@ public:
 	//アクセス
 	SsEffectNode* GetRoot(){ return root; }
 
+	const std::vector<SsEffectNode*>& getNodeList()
+	{
+		return nodeList;
+	}
 };
 
 
