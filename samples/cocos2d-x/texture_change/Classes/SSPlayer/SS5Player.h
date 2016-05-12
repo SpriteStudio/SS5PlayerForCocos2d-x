@@ -668,7 +668,7 @@ enum {
 
 //エフェクトアトリビュートのループフラグ
 enum {
-	EFFECT_LOOP_FLAG_INFINITY = 1 << 0,
+	EFFECT_LOOP_FLAG_INDEPENDENT = 1 << 0,
 };
 
 /// Animation Part Type
@@ -1113,14 +1113,13 @@ public:
 	* 有効時は指定したサイズでクリッピングされます。
 	* 一度アニメーションを仮想レンダーにレンダリングしてから描画するため負荷がかかります。
 	* サイズ、基準位置を省略した場合、SSで設定した基準枠の範囲が適用されます。
-	* 制限：
-	*   カラーブレンドを使用したパーツは描画されません。
+	* 基準位置は横方向の場合 width * pivotX の分がずれて描画されます。
 	*
 	* @param  flag				有効：true、無効：false
 	* @param  width				クリッピングするサイズ（横幅）
 	* @param  height			クリッピングするサイズ（高さ）
-	* @param  width				基準位置X（-0.5：左～0：中央～+0.5：右）
-	* @param  height			基準位置Y（-0.5：下～0：中央～+0.5：上）
+	* @param  pivotX			基準位置X（-0.5：左～0：中央～+0.5：右）
+	* @param  pivotY			基準位置Y（-0.5：下～0：中央～+0.5：上）
 	*/
 	void offScreenRenderingEnable(bool enable, float width = 0.0f, float height = 0.0f, float pivotX = -1000.0f, float pivotY = -1000.0f);
 
@@ -1204,7 +1203,7 @@ protected:
 
 	void play(AnimeRef* animeRef, int loop, int startFrameNo);
 	void updateFrame(float dt);
-	void setFrame(int frameNo, float dt);
+	void setFrame(int frameNo, float dt = 0.0f);
 	void checkUserData(int frameNo);
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);

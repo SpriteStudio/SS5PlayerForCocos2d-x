@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.2.6
+// SS5Player For Cocos2d-x v1.3.0
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -11,7 +11,7 @@
 
 /************************************************************
 Cocos2d-X Ver2.2.6に対応しています。
-対応するssbpフォーマットはバージョン3です。
+対応するssbpフォーマットはバージョン4です。
 Ss5ConverterのフォーマットバージョンはSpriteStudioSDKを参照してください。
 https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%90%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9
 
@@ -65,7 +65,7 @@ https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%
 #include "./Common/Animator/ssplayer_effectfunction.h"
 #include "./Common/Animator/ssplayer_cellmap.h"
 #include "./Common/Animator/ssplayer_PartState.h"
-#include "./Common/Animator/MersenneTwister.h"
+//#include "./Common/Animator/MersenneTwister.h"
 
 
 
@@ -117,6 +117,17 @@ struct State
 	float instancerotationY;		/// インスタンスパーツに設定されたY回転
 	float instancerotationZ;		/// インスタンスパーツに設定されたZ回転
 	cocos2d::CCAffineTransform	trans;
+	//インスタンスアトリビュート
+	int			instanceValue_curKeyframe;
+	int			instanceValue_startFrame;
+	int			instanceValue_endFrame;
+	int			instanceValue_loopNum;
+	float		instanceValue_speed;
+	int			instanceValue_loopflag;
+	//エフェクトアトリビュート
+	int			effectValue_startTime;
+	float		effectValue_speed;
+	int			effectValue_loopflag;
 
 	void init()
 	{
@@ -150,6 +161,15 @@ struct State
 		instancerotationY = 0.0f;
 		instancerotationZ = 0.0f;
 		trans = cocos2d::CCAffineTransformMakeIdentity();
+		instanceValue_curKeyframe = 0;
+		instanceValue_startFrame = 0;
+		instanceValue_endFrame = 0;
+		instanceValue_loopNum = 0;
+		instanceValue_speed = 0;
+		instanceValue_loopflag = 0;
+		effectValue_startTime = 0;
+		effectValue_speed = 0;
+		effectValue_loopflag = 0;
 	}
 
 	State() { init(); }
@@ -186,11 +206,15 @@ public:
 	float				_liveFrame;
 
 	//エフェクト用パラメータ
-	SsEffectRenderer*	refEffect;
+	SsEffectRenderV2*	refEffect;
 	SsPartState			partState;
 
 	//モーションブレンド用ステータス
 	State				_orgState;
+
+	//エフェクト制御用ワーク
+	bool effectAttrInitialized;
+	float effectTimeTotal;
 
 public:
 	CustomSprite();
@@ -263,6 +287,16 @@ public:
 		setStateValue(_state.instancerotationX, state.instancerotationX);
 		setStateValue(_state.instancerotationY, state.instancerotationY);
 		setStateValue(_state.instancerotationZ, state.instancerotationZ);
+
+		setStateValue(_state.instanceValue_curKeyframe, state.instanceValue_curKeyframe);
+		setStateValue(_state.instanceValue_startFrame, state.instanceValue_startFrame);
+		setStateValue(_state.instanceValue_endFrame, state.instanceValue_endFrame);
+		setStateValue(_state.instanceValue_loopNum, state.instanceValue_loopNum);
+		setStateValue(_state.instanceValue_speed, state.instanceValue_speed);
+		setStateValue(_state.instanceValue_loopflag, state.instanceValue_loopflag);
+		setStateValue(_state.effectValue_startTime, state.effectValue_startTime);
+		setStateValue(_state.effectValue_speed, state.effectValue_speed);
+		setStateValue(_state.effectValue_loopflag, state.effectValue_loopflag);
 	}
 
 
@@ -611,11 +645,7 @@ enum {
 	PART_FLAG_BOUNDINGRADIUS	= 1 << 24,
 
 	PART_FLAG_INSTANCE_KEYFRAME = 1 << 25,
-	PART_FLAG_INSTANCE_START	= 1 << 26,
-	PART_FLAG_INSTANCE_END		= 1 << 27,
-	PART_FLAG_INSTANCE_SPEED	= 1 << 28,
-	PART_FLAG_INSTANCE_LOOP		= 1 << 29,
-	PART_FLAG_INSTANCE_LOOP_FLG = 1 << 30,
+	PART_FLAG_EFFECT_KEYFRAME	= 1 << 26,		/// エフェクト
 
 	NUM_PART_FLAGS
 };
@@ -635,6 +665,11 @@ enum {
 	INSTANCE_LOOP_FLAG_REVERSE = 1 << 1,
 	INSTANCE_LOOP_FLAG_PINGPONG = 1 << 2,
 	INSTANCE_LOOP_FLAG_INDEPENDENT = 1 << 3,
+};
+
+//エフェクトアトリビュートのループフラグ
+enum {
+	EFFECT_LOOP_FLAG_INDEPENDENT = 1 << 0,
 };
 
 /// Animation Part Type
@@ -698,8 +733,6 @@ namespace SsTexFilterMode
 	};
 };
 */
-//固定少数の定数 10=1ドット
-#define DOT (10.0f)
 
 //カラーラベル定数
 #define COLORLABELSTR_NONE		""
@@ -729,15 +762,7 @@ enum
 
 
 //プレイヤーで扱えるアニメに含まれるパーツの最大数
-//数が大きくなるとプレイヤー生成時に負荷がかかります。
 #define PART_VISIBLE_MAX (512)
-
-
-// エフェクト機能を使用する場合は
-// Common/Animator/ssplayer_effect.h
-// に定義されているエフェクトクラスの管理するバッファ定数も参照してください。
-//#define SSEFFECTRENDER_EMMITER_MAX (128)		//１パーツが管理するエミッターバッファ数
-//#define SSEFFECTRENDER_PARTICLE_MAX (512)		//１パーツが管理するパーティクルバッファ数
 
 //------------------------------------------------------------------------------
 
@@ -1031,7 +1056,6 @@ public:
 	* インスタンスキーを手動で設定する事が出来ます。
 	* アニメーションに合わせて開始フレーム、終了フレーム等のインスタンスアトリビュート情報を設定してください。
 	* 終了フレーム最大値は総フレーム-1になります。
-	* 変更前と後でアニメーションの総フレーム数が違う場合、存在しないフレームを参照して例外が発生します。
 	* 上書きフラグがfalseの場合、SS上に設定されたインスタンスアトリビュートの設定を使用します。
 	* 使用例：
 	* ss::Instance param;
@@ -1064,18 +1088,48 @@ public:
 	void getInstanceParam(bool *overWrite, Instance *keyParam);
 
 	/*
+	* アニメーションのループ範囲（再生位置）を上書きします。
+	*
+	* @param  frame			開始フレーム（-1で上書き解除）
+	*/
+	void setStartFrame(int frame);
+
+	/*
+	* アニメーションのループ範囲（終了位置）を上書きします。
+	* SpriteStudioのフレーム数+1を設定してください。
+	*
+	* @param  frame			終了フレーム（-1で上書き解除）
+	*/
+	void setEndFrame(int frame);
+
+	/*
+	* アニメーションのループ範囲（再生位置）を上書きします。
+	*
+	* @param  labelname			開始フレームとなるラベル名（""で上書き解除）
+	*/
+	void setStartFrameToLabelName(char *findLabelName);
+
+	/*
+	* アニメーションのループ範囲（終了位置）を上書きします。
+	*
+	* @param  labelname			終了フレームとなるラベル名（""で上書き解除）
+	*/
+	void setEndFrameToLabelName(char *findLabelName);
+
+	/*
 	* オフスクリーンレンダリングを有効にします。
 	* 有効時は指定したサイズでクリッピングされます。
 	* 一度アニメーションを仮想レンダーにレンダリングしてから描画するため負荷がかかります。
-	* サイズを省略した場合、SSで設定した基準枠の範囲が適用されます。
-	* 制限：
-	*   カラーブレンドを使用したパーツは描画されません。
+	* サイズ、基準位置を省略した場合、SSで設定した基準枠の範囲が適用されます。
+	* 基準位置は横方向の場合 width * pivotX の分がずれて描画されます。
 	*
 	* @param  flag				有効：true、無効：false
 	* @param  width				クリッピングするサイズ（横幅）
 	* @param  height			クリッピングするサイズ（高さ）
+	* @param  pivotX			基準位置X（-0.5：左～0：中央～+0.5：右）
+	* @param  pivotY			基準位置Y（-0.5：下～0：中央～+0.5：上）
 	*/
-	void offScreenRenderingEnable(bool enable, float width = 0.0f, float height = 0.0f);
+	void offScreenRenderingEnable(bool enable, float width = 0.0f, float height = 0.0f, float pivotX = -1000.0f, float pivotY = -1000.0f);
 
 	/*
 	* パーツ番号に対応したスプライト情報を取得します。
@@ -1147,7 +1201,7 @@ protected:
 
 	void play(AnimeRef* animeRef, int loop, int startFrameNo);
 	void updateFrame(float dt);
-	void setFrame(int frameNo);
+	void setFrame(int frameNo, float dt = 0.0f);
 	void checkUserData(int frameNo);
 	void get_uv_rotation(float *u, float *v, float cu, float cv, float deg);
 	void set_InstanceRotation(float rotX, float rotY, float rotZ);
@@ -1192,9 +1246,14 @@ protected:
 	SSRenderTexture*	_offScreentexture;
 	float				_offScreenWidth;
 	float				_offScreenHeight;
+	float				_offScreenPivotX;
+	float				_offScreenPivotY;
 	Player*				_motionBlendPlayer;
 	float				_blendTime;
 	float				_blendTimeMax;
+	int					_startFrameOverWrite;	//開始フレームの上書き設定
+	int					_endFrameOverWrite;		//終了フレームの上書き設定
+	int					_seedOffset;			//エフェクトシードオフセット
 
 	SSPlayerDelegate*	_delegate;
 	UserData			_userData;

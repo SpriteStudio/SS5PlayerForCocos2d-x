@@ -1614,7 +1614,7 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	setStartFrame(-1);
 	setEndFrame(-1);
 
-	setFrame((int)_playingFrame, 0);
+	setFrame((int)_playingFrame);
 }
 
 //モーションブレンドしつつ再生
@@ -2025,7 +2025,7 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 			{
 				//取得する再生フレームのデータが違う場合プレイヤーを更新する
 				//パーツステータスの更新
-				setFrame(frameNo, 0);
+				setFrame(frameNo);
 			}
 
 			ToPointer ptr(_currentRs->data);
@@ -2131,7 +2131,7 @@ bool Player::getPartState(ResluteState& result, const char* name, int frameNo)
 			{
 				//取得する再生フレームのデータが違う場合プレイヤーの状態をもとに戻す
 				//パーツステータスの更新
-				setFrame(getFrameNo(), 0);
+				setFrame(getFrameNo());
 			}
 		}
 	}
@@ -3236,7 +3236,7 @@ void Player::setFrame(int frameNo, float dt)
 				bool independent = false;
 
 				int lflags = sprite->_state.effectValue_loopflag;
-				if (lflags & EFFECT_LOOP_FLAG_INFINITY)
+				if (lflags & EFFECT_LOOP_FLAG_INDEPENDENT)
 				{
 					independent = true;
 				}
@@ -3249,11 +3249,11 @@ void Player::setFrame(int frameNo, float dt)
 
 				//パーツのステータスの更新
 				sprite->partState.alpha = sprite->_state.opacity / 255.0f;
-				int matindex = 0;
-				for (matindex = 0; matindex < 16; matindex++)
-				{
-					sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
-				}
+//				int matindex = 0;
+//				for (matindex = 0; matindex < 16; matindex++)
+//				{
+//					sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
+//				}
 				sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
 				sprite->refEffect->setParentSprite(sprite);	//親スプライトの設定
 
@@ -3307,7 +3307,7 @@ void Player::setFrame(int frameNo, float dt)
 			for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
 			{
 				CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(_partIndex[partIndex]));
-				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
+//				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
 				{ 
 					sprite->visit();
 				}

@@ -474,16 +474,16 @@ void	SsEffectRenderV2::drawSprite(
 
 	if (_parentSprite)
 	{
-		memcpy(matrix, _parentSprite->partState.matrix, sizeof(float) * 16);
+//		memcpy(matrix, _parentSprite->partState.matrix, sizeof(float) * 16);
     	parentAlpha = _parentSprite->_state.opacity / 255.0f;
 	}
 
 
-	TranslationMatrixM(matrix, _position.x * layoutScale.x, _position.y * layoutScale.y, 0.0f);	//レイアウトスケールの反映
+//	TranslationMatrixM(matrix, _position.x * layoutScale.x, _position.y * layoutScale.y, 0.0f);	//レイアウトスケールの反映
 
-	RotationXYZMatrixM( matrix , 0 , 0 , DegreeToRadian(_rotation)+direction );
+//	RotationXYZMatrixM( matrix , 0 , 0 , DegreeToRadian(_rotation)+direction );
 
-    ScaleMatrixM(  matrix , _size.x, _size.y, 1.0f );
+//    ScaleMatrixM(  matrix , _size.x, _size.y, 1.0f );
 
 	SsFColor fcolor;
 	fcolor.fromARGB( _color.toARGB() );

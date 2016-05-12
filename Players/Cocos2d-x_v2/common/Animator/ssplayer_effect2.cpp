@@ -467,8 +467,8 @@ void	SsEffectRenderV2::drawSprite(
 
 	if (dispCell->refCell.cellIndex == -1) return;
 
-	float		matrix[4 * 4];	///< 行列
-	IdentityMatrix( matrix );
+//	float		matrix[4 * 4];	///< 行列
+//	IdentityMatrix( matrix );
 
 	float parentAlpha = 1.0f;
 
@@ -503,16 +503,16 @@ void	SsEffectRenderV2::drawSprite(
 		_parentSprite->addChild(sprite);	//子供にする
 	}
 	sprite->setVisible(true);			//表示
-	sprite->setPosition(cocos2d::Vec2(_position.x, _position.y));
-	sprite->setScale(_size.x, _size.y);
-	cocos2d::Vec3 rot(0, 0, -_rotation + RadianToDegree(-direction));
-	sprite->setRotation3D(rot);
+	sprite->setPosition(cocos2d::CCPoint(_position.x * layoutScale.x, _position.y * layoutScale.y));
+	sprite->setScaleX(_size.x);
+	sprite->setScaleY(_size.y);
+	sprite->setRotation(-_rotation + RadianToDegree(-direction));
 
 	//テクスチャ、カラーブレンド
 	sprite->setTexture(dispCell->refCell.texture);
-	cocos2d::Rect rect = dispCell->refCell.rect;
+	cocos2d::CCRect rect = dispCell->refCell.rect;
 	sprite->setTextureRect(rect);
-	cocos2d::BlendFunc blendFunc = sprite->getBlendFunc();
+	cocos2d::ccBlendFunc blendFunc = sprite->getBlendFunc();
 	switch (dispCell->blendType)		//ブレンド表示
 	{
 	case SsRenderBlendType::_enum::Mix:
@@ -539,13 +539,13 @@ void	SsEffectRenderV2::drawSprite(
 	//原点
 	float pivotX = dispCell->refCell.pivot_X + 0.5f;
 	float pivotY = dispCell->refCell.pivot_Y + 0.5f;
-	sprite->setAnchorPoint(cocos2d::Point(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
+	sprite->setAnchorPoint(cocos2d::CCPoint(pivotX, 1.0f - pivotY));	//cocosは下が-なので座標を反転させる
 
-	cocos2d::V3F_C4B_T2F_Quad& quad = sprite->getAttributeRef();
+	cocos2d::ccV3F_C4B_T2F_Quad& quad = sprite->getAttributeRef();
 	if (_isContentScaleFactorAuto == true)
 	{
 		//ContentScaleFactor対応
-		float cScale = cocos2d::Director::getInstance()->getContentScaleFactor();
+		float cScale = cocos2d::CCDirector::sharedDirector()->getContentScaleFactor();
 		quad.tl.texCoords.u /= cScale;
 		quad.tr.texCoords.u /= cScale;
 		quad.bl.texCoords.u /= cScale;
@@ -562,7 +562,7 @@ void	SsEffectRenderV2::drawSprite(
 	GLubyte b = (GLubyte)(fcolor.b * 255.0f);
 	GLubyte a = (GLubyte)(fcolor.a * 255.0f);
 	sprite->setOpacity(a);
-	cocos2d::Color3B color3(r, g, b);
+	cocos2d::ccColor3B color3 = { r, g, b };
 	sprite->setColor(color3);
 }
 
