@@ -503,7 +503,7 @@ void	SsEffectRenderV2::drawSprite(
 		_parentSprite->addChild(sprite);	//Žq‹Ÿ‚É‚·‚é
 	}
 	sprite->setVisible(true);			//•\Ž¦
-	sprite->setPosition(cocos2d::Vec2(_position.x, _position.y));
+	sprite->setPosition(cocos2d::Vec2(_position.x * layoutScale.x, _position.y * layoutScale.y));
 	sprite->setScale(_size.x, _size.y);
 	cocos2d::Vec3 rot(0, 0, -_rotation + RadianToDegree(-direction));
 	sprite->setRotation3D(rot);
