@@ -2550,6 +2550,7 @@ void Player::setFrame(int frameNo, float dt)
 		float	instanceValue_speed = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readFloat() : init->instanceValue_speed;
 		int		instanceValue_loopflag = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readS32() : init->instanceValue_loopflag;
 		//エフェクトアトリビュート
+		int		effectValue_curKeyframe = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readS32() : init->effectValue_curKeyframe;
 		int		effectValue_startTime = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readS32() : init->effectValue_startTime;
 		float	effectValue_speed = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readFloat() : init->effectValue_speed;
 		int		effectValue_loopflag = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readS32() : init->effectValue_loopflag;
@@ -2659,6 +2660,7 @@ void Player::setFrame(int frameNo, float dt)
 		state.instanceValue_loopNum = instanceValue_loopNum;
 		state.instanceValue_speed = instanceValue_speed;
 		state.instanceValue_loopflag = instanceValue_loopflag;
+		state.effectValue_curKeyframe = effectValue_curKeyframe;
 		state.effectValue_startTime = effectValue_startTime;
 		state.effectValue_speed = effectValue_speed;
 		state.effectValue_loopflag = effectValue_loopflag;
@@ -3294,6 +3296,7 @@ void Player::setFrame(int frameNo, float dt)
 			{
 
 				//エフェクトアトリビュート
+				int curKeyframe = sprite->_state.effectValue_curKeyframe;
 				int refStartframe = sprite->_state.effectValue_startTime;
 				float refSpeed = sprite->_state.effectValue_speed;
 				bool independent = false;
@@ -3338,14 +3341,14 @@ void Player::setFrame(int frameNo, float dt)
 					else
 					{
 						{
-							float _time = frameNo;
+							float _time = frameNo - curKeyframe;
 							if (_time < 0)
 							{
 							}
 							else
 							{
-								_time = _time + refStartframe;
 								_time *= refSpeed;
+								_time = _time + refStartframe;
 								sprite->effectTimeTotal = _time;
 
 								sprite->refEffect->setSeedOffset(_seedOffset);
