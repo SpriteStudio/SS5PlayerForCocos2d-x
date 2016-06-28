@@ -832,6 +832,10 @@ void	SsEffectRenderV2::draw()
 
 bool compare_priority( SsEffectEmitter* left,  SsEffectEmitter* right)
 {
+	if (left->priority == right->priority)
+	{
+		if (left->uid < right->uid) return true;
+	}
   //	return true;
   return left->priority < right->priority ;
 }
@@ -921,6 +925,7 @@ void    SsEffectRenderV2::reload()
 
 		if (emmiterList[i] != 0 )
 		{
+			emmiterList[i]->uid = i;
 			//emmiterList[i]->precalculate();
 			emmiterList[i]->precalculate2(); //ƒ‹[ƒv‘Î‰Œ`®
 

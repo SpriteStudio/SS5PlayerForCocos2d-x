@@ -2263,9 +2263,6 @@ void Player::setPartCell(std::string partsname, std::string sscename, std::strin
 		if ((sscename != "") && (cellname != ""))
 		{
 			//セルマップIDを取得する
-			//必要あり
-
-
 			const Cell* cells = static_cast<const Cell*>(ptr(_currentRs->data->cells));
 
 			//名前からインデックスの取得
