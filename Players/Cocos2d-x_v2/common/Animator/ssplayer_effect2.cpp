@@ -791,11 +791,19 @@ void	SsEffectRenderV2::draw()
 {
 	if (nowFrame < 0) return;
 
+	for (size_t i = 0; i < updateList.size(); i++)
+	{
+		SsEffectEmitter* e = updateList[i];
+		if (e)
+		{
+			e->setSeedOffset(seedOffset);
+		}
+	}
+
 	for ( size_t i = 0 ; i < updateList.size() ; i++ )
 	{
 
 		SsEffectEmitter* e = updateList[i];
-		e->setSeedOffset(seedOffset);
 
 		if ( e->_parent )
 		{

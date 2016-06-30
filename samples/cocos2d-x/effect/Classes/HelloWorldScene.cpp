@@ -76,7 +76,7 @@ bool HelloWorld::init()
 	/**********************************************************************************
 
 	SSアニメ表示のサンプルコード
-	Visual Studio Express 2013 for Windows Desktopで動作を確認しています。
+	Visual Studio Communityで動作を確認しています。
 	ssbpとpngがあれば再生する事ができますが、Resourcesフォルダにsspjも含まれています。
 
 	**********************************************************************************/
@@ -95,7 +95,7 @@ bool HelloWorld::init()
 
 	//アニメデータをリソースに追加
 	//それぞれのプラットフォームに合わせたパスへ変更してください。
-	resman->addData("OPTPiX_SpriteStudio_ParticleEffectSample_150813\\effect_sample.ssbp");
+	resman->addData("OPTPiX_SpriteStudio_ParticleEffectSample_v57_160628\\effect_sample.ssbp");
 	//プレイヤーにリソースを割り当て
 	ssplayer->setData("effect_sample");        // ssbpファイル名（拡張子不要）
 	//再生するモーションを設定

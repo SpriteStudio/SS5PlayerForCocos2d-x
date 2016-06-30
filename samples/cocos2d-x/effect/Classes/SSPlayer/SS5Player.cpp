@@ -15,7 +15,7 @@ namespace ss
  */
 
 static const ss_u32 DATA_ID = 0x42505353;
-static const ss_u32 DATA_VERSION = 3;
+static const ss_u32 DATA_VERSION = 4;
 
 /**
  * utilites
@@ -755,9 +755,21 @@ protected:
 					{
 						//進行方向に向ける
 						EffectParticleTurnToDirectionEnabled readparam;
-						readparam.flag = reader.readS32();					//フラグ
+						readparam.Rotation = reader.readFloat();					//フラグ
 
 						ParticleTurnToDirectionEnabled *effectParam = new ParticleTurnToDirectionEnabled();
+						effectParam->Rotation = readparam.Rotation;
+						effectParam->setType((SsEffectFunctionType::enum_)type);				//コマンドの種類
+
+						behavior.plist.push_back(effectParam);												//パラメータを追加
+						break;
+					}
+					case SsEffectFunctionType::InfiniteEmitEnabled:
+					{
+						EffectParticleInfiniteEmitEnabled readparam;
+						readparam.flag = reader.readS32();					//フラグ
+
+						ParticleInfiniteEmitEnabled *effectParam = new ParticleInfiniteEmitEnabled();
 						effectParam->setType((SsEffectFunctionType::enum_)type);				//コマンドの種類
 
 						behavior.plist.push_back(effectParam);												//パラメータを追加
@@ -790,6 +802,8 @@ protected:
 			effectmodel->isLockRandSeed = effectFile->isLockRandSeed;  // ランダムシードを固定するか否か
 			effectmodel->fps = effectFile->fps;             //
 			effectmodel->effectName = effectFileName;
+			effectmodel->layoutScaleX = effectFile->layoutScaleX;	//レイアウトスケールX
+			effectmodel->layoutScaleY = effectFile->layoutScaleY;	//レイアウトスケールY
 
 
 			CCLOG("effect key: %s", effectFileName.c_str());
@@ -1371,9 +1385,14 @@ Player::Player(void)
 	, _playEndCallback(nullptr)
 	, _offScreenWidth(0)
 	, _offScreenHeight(0)
+	, _offScreenPivotX(0.5f)
+	, _offScreenPivotY(0.5f)
 	, _motionBlendPlayer(NULL)
 	, _blendTime(0.0f)
 	, _blendTimeMax(0.0f)
+	, _startFrameOverWrite(-1)	//開始フレームの上書き設定
+	, _endFrameOverWrite(-1)		//終了フレームの上書き設定
+	, _seedOffset(0)
 {
 	int i;
 	for (i = 0; i < PART_VISIBLE_MAX; i++)
@@ -1592,8 +1611,10 @@ void Player::play(AnimeRef* animeRef, int loop, int startFrameNo)
 	_isPlayFirstUserdataChack = true;
 	_isPlayFirstUpdate = true;
 	_animefps = _currentAnimeRef->animationData->fps;
+	setStartFrame(-1);
+	setEndFrame(-1);
 
-	setFrame(_playingFrame);
+	setFrame((int)_playingFrame);
 }
 
 //モーションブレンドしつつ再生
@@ -1671,13 +1692,25 @@ void Player::updateFrame(float dt)
 	if (!_currentAnimeRef) return;
 	if (!_currentRs->data) return;
 
+	int startFrame = 0;
+	int endFrame = _currentAnimeRef->animationData->numFrames;
+	if (_startFrameOverWrite != -1)
+	{
+		startFrame = _startFrameOverWrite;
+	}
+	if (_endFrameOverWrite != -1)
+	{
+		endFrame = _endFrameOverWrite;
+	}
+	CCASSERT(startFrame < endFrame, "Playframe is out of range.");
+
 	bool playEnd = false;
 	bool toNextFrame = _isPlaying && !_isPausing;
 	if (toNextFrame && (_loop == 0 || _loopCount < _loop))
 	{
 		// フレームを進める.
 		// forward frame.
-		const int numFrames = _currentAnimeRef->animationData->numFrames;
+		const int numFrames = endFrame;
 
 		float fdt = _frameSkipEnabled ? dt : cocos2d::Director::getInstance()->getAnimationInterval();
 		float s = fdt / (1.0f / _currentAnimeRef->animationData->fps);
@@ -1717,7 +1750,8 @@ void Player::updateFrame(float dt)
 						break;
 					}
 					
-					incFrameNo = 0;
+					incFrameNo = startFrame;
+					_seedOffset++;	//シードオフセットを加算
 				}
 				currentFrameNo = incFrameNo;
 
@@ -1733,7 +1767,7 @@ void Player::updateFrame(float dt)
 			for (int c = currentFrameNo - nextFrameNo; c; c--)
 			{
 				int decFrameNo = currentFrameNo - 1;
-				if (decFrameNo < 0)
+				if (decFrameNo < startFrame)
 				{
 					// アニメが一巡
 					// turned animation.
@@ -1747,6 +1781,7 @@ void Player::updateFrame(float dt)
 					}
 				
 					decFrameNo = numFrames - 1;
+					_seedOffset++;	//シードオフセットを加算
 				}
 				currentFrameNo = decFrameNo;
 
@@ -1764,7 +1799,7 @@ void Player::updateFrame(float dt)
 		checkUserData(getFrameNo());
 	}
 
-	setFrame(getFrameNo());
+	setFrame(getFrameNo(), dt);
 
 	//モーションブレンド用アップデート
 	if (_motionBlendPlayer)
@@ -1913,7 +1948,7 @@ void Player::setPartsParentage()
 			{
 
 				//エフェクトクラスにパラメータを設定する
-				SsEffectRenderer* er = new SsEffectRenderer();
+				SsEffectRenderV2* er = new SsEffectRenderV2();
 				sprite->refEffect = er;
 				sprite->refEffect->setParentAnimeState(&sprite->partState);
 				sprite->refEffect->setEffectData(effectmodel);
@@ -1922,6 +1957,7 @@ void Player::setPartsParentage()
 				sprite->refEffect->setSeed(getRandomSeed());
 				sprite->refEffect->reload();
 				sprite->refEffect->stop();
+				sprite->refEffect->setLoop(false);
 			}
 		}
 	}
@@ -2181,9 +2217,6 @@ void Player::setPartCell(std::string partsname, std::string sscename, std::strin
 		if ((sscename != "") && (cellname != ""))
 		{
 			//セルマップIDを取得する
-			//必要あり
-
-
 			const Cell* cells = static_cast<const Cell*>(ptr(_currentRs->data->cells));
 
 			//名前からインデックスの取得
@@ -2259,7 +2292,7 @@ bool Player::changeInstanceAnime(std::string partsname, std::string animename, b
 					if (_currentAnimename != animename )
 					{
 						sprite->_ssplayer->play(animename);
-						setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
+						sprite->_ssplayer->setInstanceParam(overWrite, keyParam);	//インスタンスパラメータの設定
 						sprite->_ssplayer->animeResume();		//アニメ切り替え時にがたつく問題の対応
 						sprite->_liveFrame = 0;					//独立動作の場合再生位置をリセット
 						rc = true;
@@ -2298,7 +2331,7 @@ void Player::setColor(int r, int g, int b)
 }
 
 //オフスクリーンレンダリングを有効にします。
-void Player::offScreenRenderingEnable(bool enable, float width, float height)
+void Player::offScreenRenderingEnable(bool enable, float width, float height, float pivotX, float pivotY)
 {
 	if (_currentAnimeRef)
 	{
@@ -2308,6 +2341,8 @@ void Player::offScreenRenderingEnable(bool enable, float width, float height)
 			_offScreentexture = nullptr;
 			_offScreenWidth = 0.0f;
 			_offScreenHeight = 0.0f;
+			_offScreenPivotX = 0.0f;
+			_offScreenPivotY = 0.0f;
 		}
 		if (enable == true)
 		{
@@ -2320,8 +2355,18 @@ void Player::offScreenRenderingEnable(bool enable, float width, float height)
 			{
 				height = _currentAnimeRef->animationData->canvasSizeH;
 			}
+			if (pivotX == -1000.0f)
+			{
+				pivotX = _currentAnimeRef->animationData->canvasPvotX;
+			}
+			if (pivotY == -1000.0f)
+			{
+				pivotY = _currentAnimeRef->animationData->canvasPvotY;
+			}
 			_offScreenWidth = width;
 			_offScreenHeight = height;
+			_offScreenPivotX = pivotX;
+			_offScreenPivotY = pivotY;
 			_offScreentexture = SSRenderTexture::create(width, height);
 			cocos2d::Texture2D::TexParams texParams;
 			texParams.wrapS = GL_CLAMP_TO_EDGE;
@@ -2334,6 +2379,36 @@ void Player::offScreenRenderingEnable(bool enable, float width, float height)
 			_offScreentexture->setVisible(true);
 		}
 	}
+}
+
+//アニメーションのループ範囲を設定します
+void Player::setStartFrame(int frame)
+{
+	_startFrameOverWrite = frame;	//開始フレームの上書き設定
+									//現在フレームより後の場合は先頭フレームに設定する
+	if (getFrameNo() < frame)
+	{
+		setFrameNo(frame);
+	}
+}
+void Player::setEndFrame(int frame)
+{
+	_endFrameOverWrite = frame;		//終了フレームの上書き設定
+}
+//アニメーションのループ範囲をラベル名で設定します
+void Player::setStartFrameToLabelName(char *findLabelName)
+{
+	int frame = getLabelToFrame(findLabelName);
+	setStartFrame(frame);
+}
+void Player::setEndFrameToLabelName(char *findLabelName)
+{
+	int frame = getLabelToFrame(findLabelName);
+	if (frame != -1)
+	{
+		frame += 1;
+	}
+	setEndFrame(frame);
 }
 
 //スプライト情報の取得
@@ -2350,7 +2425,7 @@ CustomSprite* Player::getSpriteData(int partIndex)
 	return(sprite);
 }
 
-void Player::setFrame(int frameNo)
+void Player::setFrame(int frameNo, float dt)
 {
 	if (!_currentAnimeRef) return;
 	if (!_currentRs->data) return;
@@ -2400,9 +2475,9 @@ void Player::setFrame(int frameNo)
 		// optional parameters
 		int flags = reader.readU32();
 		int cellIndex = flags & PART_FLAG_CELL_INDEX ? reader.readS16() : init->cellIndex;
-		float x = flags & PART_FLAG_POSITION_X ? reader.readS16() : init->positionX;
-		float y = flags & PART_FLAG_POSITION_Y ? reader.readS16() : init->positionY;
-		float z = flags & PART_FLAG_POSITION_Z ? reader.readS16() : init->positionZ;
+		float x = flags & PART_FLAG_POSITION_X ? reader.readFloat() : init->positionX;
+		float y = flags & PART_FLAG_POSITION_Y ? reader.readFloat() : init->positionY;
+		float z = flags & PART_FLAG_POSITION_Z ? reader.readFloat() : init->positionZ;
 		float pivotX = flags & PART_FLAG_PIVOT_X ? reader.readFloat() : init->pivotX;
 		float pivotY = flags & PART_FLAG_PIVOT_Y ? -reader.readFloat() : -init->pivotY;		//cocosでは上下が逆なので反転する
 		float rotationX = flags & PART_FLAG_ROTATIONX ? -reader.readFloat() : -init->rotationX;
@@ -2420,6 +2495,19 @@ void Player::setFrame(int frameNo)
 		float uv_scale_Y = flags & PART_FLAG_V_SCALE ? reader.readFloat() : init->uv_scale_Y;
 		float boundingRadius = flags & PART_FLAG_BOUNDINGRADIUS ? reader.readFloat() : init->boundingRadius;
 
+		//インスタンスアトリビュート
+		int		instanceValue_curKeyframe = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readS32() : init->instanceValue_curKeyframe;
+		int		instanceValue_startFrame = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readS32() : init->instanceValue_startFrame;
+		int		instanceValue_endFrame = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readS32() : init->instanceValue_endFrame;
+		int		instanceValue_loopNum = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readS32() : init->instanceValue_loopNum;
+		float	instanceValue_speed = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readFloat() : init->instanceValue_speed;
+		int		instanceValue_loopflag = flags & PART_FLAG_INSTANCE_KEYFRAME ? reader.readS32() : init->instanceValue_loopflag;
+		//エフェクトアトリビュート
+		int		effectValue_curKeyframe = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readS32() : init->effectValue_curKeyframe;
+		int		effectValue_startTime = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readS32() : init->effectValue_startTime;
+		float	effectValue_speed = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readFloat() : init->effectValue_speed;
+		int		effectValue_loopflag = flags & PART_FLAG_EFFECT_KEYFRAME ? reader.readS32() : init->effectValue_loopflag;
+
 		bool flipX = (bool)(flags & PART_FLAG_FLIP_H);
 		bool flipY = (bool)(flags & PART_FLAG_FLIP_V);
 		bool isVisibled = !(flags & PART_FLAG_INVISIBLE);
@@ -2436,11 +2524,6 @@ void Player::setFrame(int frameNo)
 			cellIndex = _cellChange[index];
 		}
 
-		//固定少数を少数へ戻す
-		x = x / DOT;
-		y = y / DOT;
-		z = z / DOT;
-
 		_partIndex[index] = partIndex;
 
 		//オフスクリーンレンダリング時はrootパーツの位置を画面の中央に移動させる
@@ -2448,8 +2531,8 @@ void Player::setFrame(int frameNo)
 		{
 			if (partIndex == 0)
 			{
-				x += _offScreenWidth / 2.0f;
-				y += _offScreenHeight / 2.0f;
+				x += _offScreenWidth * (_offScreenPivotX + 0.5f);
+				y += _offScreenHeight * (_offScreenPivotY + 0.5f);
 			}
 		}
 
@@ -2523,6 +2606,17 @@ void Player::setFrame(int frameNo)
 		state.instancerotationX = _InstanceRotX;
 		state.instancerotationY = _InstanceRotY;
 		state.instancerotationZ = _InstanceRotZ;
+
+		state.instanceValue_curKeyframe = instanceValue_curKeyframe;
+		state.instanceValue_startFrame = instanceValue_startFrame;
+		state.instanceValue_endFrame = instanceValue_endFrame;
+		state.instanceValue_loopNum = instanceValue_loopNum;
+		state.instanceValue_speed = instanceValue_speed;
+		state.instanceValue_loopflag = instanceValue_loopflag;
+		state.effectValue_curKeyframe = effectValue_curKeyframe;
+		state.effectValue_startTime = effectValue_startTime;
+		state.effectValue_speed = effectValue_speed;
+		state.effectValue_loopflag = effectValue_loopflag;
 
 		CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(partIndex));
 
@@ -2922,61 +3016,38 @@ void Player::setFrame(int frameNo)
 		{
 			bool overWrite;
 			Instance keyParam;
-			getInstanceParam(&overWrite, &keyParam);
+			sprite->_ssplayer->getInstanceParam(&overWrite, &keyParam);
 			//描画
-			int refKeyframe = 0;
-			int refStartframe = 0;
-			int refEndframe = 0;
-			float refSpeed = 0;
-			int refloopNum = 0;
+			int refKeyframe = instanceValue_curKeyframe;
+			int refStartframe = instanceValue_startFrame;
+			int refEndframe = instanceValue_endFrame;
+			float refSpeed = instanceValue_speed;
+			int refloopNum = instanceValue_loopNum;
 			bool infinity = false;
 			bool reverse = false;
 			bool pingpong = false;
 			bool independent = false;
 
-			if (flags & PART_FLAG_INSTANCE_KEYFRAME)
+			int lflags = instanceValue_loopflag;
+			if (lflags & INSTANCE_LOOP_FLAG_INFINITY)
 			{
-				refKeyframe = reader.readS16();
+				//無限ループ
+				infinity = true;
 			}
-			if (flags & PART_FLAG_INSTANCE_START)
+			if (lflags & INSTANCE_LOOP_FLAG_REVERSE)
 			{
-				refStartframe = reader.readS16();
+				//逆再生
+				reverse = true;
 			}
-			if (flags & PART_FLAG_INSTANCE_END)
+			if (lflags & INSTANCE_LOOP_FLAG_PINGPONG)
 			{
-				refEndframe = reader.readS16();
+				//往復
+				pingpong = true;
 			}
-			if (flags & PART_FLAG_INSTANCE_SPEED)
+			if (lflags & INSTANCE_LOOP_FLAG_INDEPENDENT)
 			{
-				refSpeed = reader.readFloat();
-			}
-			if (flags & PART_FLAG_INSTANCE_LOOP)
-			{
-				refloopNum = reader.readS16();
-			}
-			if (flags & PART_FLAG_INSTANCE_LOOP_FLG)
-			{
-				int lflags = reader.readS16();
-				if (lflags & INSTANCE_LOOP_FLAG_INFINITY)
-				{
-					//無限ループ
-					infinity = true;
-				}
-				if (lflags & INSTANCE_LOOP_FLAG_REVERSE)
-				{
-					//逆再生
-					reverse = true;
-				}
-				if (lflags & INSTANCE_LOOP_FLAG_PINGPONG)
-				{
-					//往復
-					pingpong = true;
-				}
-				if (lflags & INSTANCE_LOOP_FLAG_INDEPENDENT)
-				{
-					//独立
-					independent = true;
-				}
+				//独立
+				independent = true;
 			}
 			//インスタンスパラメータを上書きする
 			if (overWrite == true)
@@ -2997,7 +3068,7 @@ void Player::setFrame(int frameNo)
 			//独立動作の場合
 			if (independent)
 			{
-				float fdt = cocos2d::Director::getInstance()->getAnimationInterval();
+				float fdt = dt;
 				float delta = fdt / (1.0f / _animefps);						//v1.0.8	独立動作時は親アニメのfpsを使用する
 				//				float delta = fdt / (1.0f / sprite->_ssplayer->_animefps);	//v1.0.7	独立動作時はソースアニメのfpsを使用する
 
@@ -3009,8 +3080,9 @@ void Player::setFrame(int frameNo)
 			int	selfTopKeyframe = refKeyframe;
 
 
-			int	reftime = (time * refSpeed) - selfTopKeyframe; //開始から現在の経過時間
+			int	reftime = (int)((float)(time - selfTopKeyframe) * refSpeed); //開始から現在の経過時間
 			if (reftime < 0) continue;							//そもそも生存時間に存在していない
+			if (selfTopKeyframe > time) continue;
 
 			int inst_scale = (refEndframe - refStartframe) + 1; //インスタンスの尺
 
@@ -3157,67 +3229,69 @@ void Player::setFrame(int frameNo)
 			//エフェクトのアップデート
 			if (sprite->refEffect)
 			{
-				sprite->refEffect->setParentSprite(sprite);
-				if (sprite->_state.isVisibled == false)
-				{
-					//パーツが非表示の場合はエフェクトをリセットする
-					if (sprite->refEffect->getPlayStatus() == true)
-					{
-						//毎回行うと負荷がかかるので、前回が再生中であればリセット
-						sprite->refEffect->setSeed(getRandomSeed());
-						sprite->refEffect->reload();
-						sprite->refEffect->stop();
-					}
-				}
-				else
-				{
-					//パーツのステータスの更新
-					sprite->partState.alpha = sprite->_state.opacity / 255.0f;
-					int matindex = 0;
-					for (matindex = 0; matindex < 16; matindex++)
-					{
-						sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
-					}
-					sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
 
-					//エフェクトアップデート
-					if (frameNo != _prevDrawFrameNo)
+				//エフェクトアトリビュート
+				int curKeyframe = sprite->_state.effectValue_curKeyframe;
+				int refStartframe = sprite->_state.effectValue_startTime;
+				float refSpeed = sprite->_state.effectValue_speed;
+				bool independent = false;
+
+				int lflags = sprite->_state.effectValue_loopflag;
+				if (lflags & EFFECT_LOOP_FLAG_INDEPENDENT)
+				{
+					independent = true;
+				}
+
+				if (sprite->effectAttrInitialized == false)
+				{
+					sprite->effectAttrInitialized = true;
+					sprite->effectTimeTotal = refStartframe;
+				}
+
+				//パーツのステータスの更新
+				sprite->partState.alpha = sprite->_state.opacity / 255.0f;
+//				int matindex = 0;
+//				for (matindex = 0; matindex < 16; matindex++)
+//				{
+//					sprite->partState.matrix[matindex] = sprite->_mat.m[matindex];
+//				}
+				sprite->refEffect->setContentScaleEneble(_isContentScaleFactorAuto);
+				sprite->refEffect->setParentSprite(sprite);	//親スプライトの設定
+
+				if (sprite->_state.isVisibled == true)
+				{
+
+					if (independent)
 					{
-						sprite->refEffect->setLoop(false);
-						int fdt = 1;
-						if (_prevDrawFrameNo < frameNo)			//差分フレームを計算
+						//独立動作
+						if (sprite->effectAttrInitialized)
 						{
-							fdt = ( frameNo - _prevDrawFrameNo ) * 2;
-							if (sprite->refEffect->getPlayStatus() == false)
-							{
-								sprite->refEffect->play();
-								//前回エフェクトの更新をしていない場合は初回を0でアップデートする
-								sprite->refEffect->update(0.0f); //先頭フレームは0でアップデートする
-								fdt = fdt - 1;
-							}
-						}
-						else
-						{
-							//アニメーションループ時
-							sprite->refEffect->setSeed(getRandomSeed());
-							sprite->refEffect->reload();
+							float delta = dt / (1.0f / _animefps);						//	独立動作時は親アニメのfpsを使用する
+							sprite->effectTimeTotal += delta * refSpeed;
+							sprite->refEffect->setLoop(true);
+							sprite->refEffect->setFrame(sprite->effectTimeTotal);
 							sprite->refEffect->play();
-							sprite->refEffect->update(0.0f); //先頭フレームは0でアップデートする
-							fdt = frameNo * 2;
-							if (frameNo > 0)
+							sprite->refEffect->update();
+						}
+					}
+					else
+					{
+						{
+							float _time = frameNo - curKeyframe;
+							if (_time < 0)
 							{
-								fdt = fdt - 1;
 							}
 							else
 							{
-								fdt = 0;
-							}
+								_time *= refSpeed;
+								_time = _time + refStartframe;
+								sprite->effectTimeTotal = _time;
 
-						}
-						int f = 0;
-						for (f = 0; f < fdt; f++)
-						{
-							sprite->refEffect->update(0.5f); //先頭から今のフレーム
+								sprite->refEffect->setSeedOffset(_seedOffset);
+								sprite->refEffect->setFrame(_time);
+								sprite->refEffect->play();
+								sprite->refEffect->update();
+							}
 						}
 					}
 					sprite->refEffect->draw();
@@ -3234,7 +3308,7 @@ void Player::setFrame(int frameNo)
 			for (int partIndex = 0; partIndex < packData->numParts; partIndex++)
 			{
 				CustomSprite* sprite = static_cast<CustomSprite*>(_parts.at(_partIndex[partIndex]));
-				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
+//				if (sprite->isCustomShaderProgramEnabled() == false)	//カラーブレンドの設定されたスプライトは表示しない
 				{ 
 					sprite->visit();
 				}
@@ -3417,15 +3491,14 @@ float Player::parcentValRot(float val1, float val2, float parcent)
 	return (newval);
 }
 
-
 /**
  * CustomSprite
  */
-
+#if OLDSHADER_USE
 unsigned int CustomSprite::ssSelectorLocation = 0;
 unsigned int CustomSprite::ssAlphaLocation = 0;
 unsigned int CustomSprite::sshasPremultipliedAlpha = 0;
-
+#endif 
 static const GLchar * ssPositionTextureColor_frag =
 #include "ssShader_frag.h"
 
@@ -3438,13 +3511,35 @@ CustomSprite::CustomSprite()
 	, _hasPremultipliedAlpha(0)
 	, refEffect(0)
 	, _ssplayer(0)
+	, effectAttrInitialized(false)
+	, effectTimeTotal(0)
+#if OLDSHADER_USE
+#else
+	, _shaderProgramState(0)
+#endif
 {}
 
 CustomSprite::~CustomSprite()
-{}
+{
+	//エフェクトクラスがある場合は解放する
+	if (refEffect)
+	{
+		delete refEffect;
+		refEffect = 0;
+	}
+#if OLDSHADER_USE
+#else
+	if (_shaderProgramState)
+	{
+		_shaderProgramState->release();
+		_shaderProgramState = 0;
+	}
+#endif
+}
 
 cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 {
+#if OLDSHADER_USE
 	using namespace cocos2d;
 
 	static GLProgram* p = nullptr;
@@ -3484,6 +3579,18 @@ cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 		glUniform1i(sshasPremultipliedAlpha, 0);
 	}
 	return p;
+#else 
+
+	static const char* shaderKey = "SS5PlayerShader";
+	cocos2d::GLProgramCache* glprogramcache = cocos2d::GLProgramCache::getInstance();
+	cocos2d::GLProgram* glprogram = glprogramcache->getGLProgram(shaderKey);
+	if (glprogram == nullptr)
+	{
+		glprogram = cocos2d::GLProgram::createWithByteArrays(cocos2d::ccPositionTextureColor_noMVP_vert, ssPositionTextureColor_frag);
+		glprogramcache->addGLProgram(glprogram, shaderKey);
+	}
+	return glprogram;
+#endif
 }
 
 CustomSprite* CustomSprite::create()
@@ -3513,7 +3620,15 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 				shaderProgram = _defaultShaderProgram;
 				useCustomShaderProgram = false;
 			}
+#if OLDSHADER_USE
 			this->setGLProgram(shaderProgram);
+#else			
+			if (_shaderProgramState == 0)
+			{
+				_shaderProgramState = cocos2d::GLProgramState::create(shaderProgram);
+			}
+			this->setGLProgramState(_shaderProgramState);
+#endif			
 			_useCustomShaderProgram = useCustomShaderProgram;
 		}
 		else
@@ -3569,7 +3684,7 @@ const cocos2d::Mat4& CustomSprite::getNodeToParentTransform() const
 }
 
 
-
+int cont = 0;
 #if 1
 void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags)
 {
@@ -3586,9 +3701,11 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	if (!_useCustomShaderProgram)
 	{
 		cocos2d::Sprite::draw(renderer, transform, flags);
+#if OLDSHADER_USE
 		return;
+#endif		
 	}
-	
+#if OLDSHADER_USE
 	//cocos v3系からspriteのdraw内でレンダーに描画コマンドを積む方式に変わったため、
 	//自前のシェーダーをcocos側に渡してパラメータを設定することが難しい。
 	//カラーブレンドスプライトは表示タイミングで、現在レンダーにたまっている描画コマンドを処理して
@@ -3605,11 +3722,24 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
     {
 		GL::bindTexture2D(_texture->getName());
     }
+#endif
     else
     {
+#if OLDSHADER_USE
 		GL::bindTexture2D(0);
+#else
+
+		cocos2d::GLProgramState* pGLProgramState = getGLProgramState();
+		pGLProgramState->setUniformInt("u_selector", (int)_colorBlendFuncNo);
+		pGLProgramState->setUniformFloat("u_alpha", _opacity);
+		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
+		pGLProgramState->setUniformTexture("u_texture", this->getTexture());
+
+		cocos2d::Sprite::draw(renderer, transform, flags);
+#endif
     }
     
+#if OLDSHADER_USE
 	glUniform1i(ssSelectorLocation, _colorBlendFuncNo);
 	glUniform1f(ssAlphaLocation, _opacity);
 	glUniform1i(sshasPremultipliedAlpha, _hasPremultipliedAlpha);
@@ -3663,7 +3793,7 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 #endif // CC_SPRITE_DEBUG_DRAW
 
     CC_INCREMENT_GL_DRAWS(1);
-
+#endif	// OLDSHADER_USE
     CC_PROFILER_STOP_CATEGORY(kCCProfilerCategorySprite, "CCSprite - draw");
 
 }
