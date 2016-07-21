@@ -2022,6 +2022,14 @@ void Player::setPartsParentage()
 	}
 }
 
+//再生しているアニメーションに含まれるパーツ数を取得
+int Player::getPartsCount(void)
+{
+	ToPointer ptr(_currentRs->data);
+	const AnimePackData* packData = _currentAnimeRef->animePackData;
+	return packData->numParts;
+}
+
 //indexからパーツ名を取得
 const char* Player::getPartName(int partId) const
 {
@@ -3554,7 +3562,7 @@ float Player::parcentValRot(float val1, float val2, float parcent)
 	}
 
 
-	float newval = inewval / 10;
+	float newval = (float)inewval / 10.0f;
 	return (newval);
 }
 

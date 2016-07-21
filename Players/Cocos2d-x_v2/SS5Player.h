@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.3.0
+// SS5Player For Cocos2d-x v1.3.1
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -982,6 +982,11 @@ public:
 	* ラベル名からフレーム位置を取得します.
 	*/
 	int getLabelToFrame(char* findLabelName);
+
+	/**
+	* 再生しているアニメーションに含まれるパーツ数を取得します.
+	*/
+	int getPartsCount(void);
 
 	/**
 	* indexからパーツ名を取得します.
