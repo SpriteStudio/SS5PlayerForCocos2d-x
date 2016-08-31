@@ -3643,6 +3643,11 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 		{
 			this->setGLProgram(_defaultShaderProgram);
 			_useCustomShaderProgram = false;
+#if OLDSHADER_USE
+#else
+			//ディフォルトシェーダープログラムを設定すると今まで使っていたシェーダプログラムは解放される
+			_shaderProgramState = 0;
+#endif
 		}
 	}
 }
