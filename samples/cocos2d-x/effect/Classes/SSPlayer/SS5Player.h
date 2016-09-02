@@ -184,6 +184,7 @@ class CustomSprite : public cocos2d::Sprite
 {
 private:
 #if OLDSHADER_USE
+	static unsigned int ssPartsBlendType;
 	static unsigned int ssSelectorLocation;
 	static unsigned int	ssAlphaLocation;
 	static unsigned int	sshasPremultipliedAlpha;
@@ -196,6 +197,7 @@ private:
 	float				_opacity;
 	int					_hasPremultipliedAlpha;
 	int					_colorBlendFuncNo;
+	int					_partsBlendFuncNo;
 #if OLDSHADER_USE
 #else
 	cocos2d::GLProgramState* _shaderProgramState;
@@ -312,6 +314,7 @@ public:
 	void changeShaderProgram(bool useCustomShaderProgram);
 	bool isCustomShaderProgramEnabled() const;
 	void setColorBlendFunc(int colorBlendFuncNo);
+	void setPartsBlendFunc(int partsBlendFuncNo);
 	cocos2d::V3F_C4B_T2F_Quad& getAttributeRef();
 	void sethasPremultipliedAlpha(int PremultipliedAlpha);
 

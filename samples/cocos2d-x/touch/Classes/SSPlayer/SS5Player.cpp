@@ -2652,6 +2652,7 @@ void Player::setFrame(int frameNo, float dt)
 			{
 				sprite->setTexture(cellRef->texture);
 				sprite->setTextureRect(cellRef->rect);
+				sprite->setPartsBlendFunc(partData->alphaBlendType);
 
 				if (setBlendEnabled)
 				{
@@ -2679,13 +2680,18 @@ void Player::setFrame(int frameNo, float dt)
 						// カスタムシェーダを使用する場合
 						blendFunc.src = GL_SRC_ALPHA;
 
+						// 乗算ブレンド
+						if (partData->alphaBlendType == BLEND_MUL) {
+							blendFunc.src = GL_DST_COLOR;
+							blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+						}
 						// 加算ブレンド
 						if (partData->alphaBlendType == BLEND_ADD) {
 							blendFunc.dst = GL_ONE;
 						}
 						// 減算ブレンド
 						if (partData->alphaBlendType == BLEND_SUB) {
-							blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+							blendFunc.src = GL_ZERO;
 							blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
 						}
 					}
@@ -3503,6 +3509,7 @@ float Player::parcentValRot(float val1, float val2, float parcent)
  * CustomSprite
  */
 #if OLDSHADER_USE
+unsigned int CustomSprite::ssPartsBlendType = 0;
 unsigned int CustomSprite::ssSelectorLocation = 0;
 unsigned int CustomSprite::ssAlphaLocation = 0;
 unsigned int CustomSprite::sshasPremultipliedAlpha = 0;
@@ -3515,6 +3522,7 @@ CustomSprite::CustomSprite()
 	, _useCustomShaderProgram(false)
 	, _opacity(1.0f)
 	, _colorBlendFuncNo(0)
+	, _partsBlendFuncNo(0)
 	, _liveFrame(0.0f)
 	, _hasPremultipliedAlpha(0)
 	, refEffect(0)
@@ -3570,6 +3578,7 @@ cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 		
 		p->updateUniforms();
 		
+		ssPartsBlendType = glGetUniformLocation(p->getProgram(), "u_partblend");
 		ssSelectorLocation = glGetUniformLocation(p->getProgram(), "u_selector");
 		ssAlphaLocation = glGetUniformLocation(p->getProgram(), "u_alpha");
 		sshasPremultipliedAlpha = glGetUniformLocation(p->getProgram(), "u_hasPremultipliedAlpha");
@@ -3582,6 +3591,7 @@ cocos2d::GLProgram* CustomSprite::getCustomShaderProgram()
 			return nullptr;
 		}
 
+		glUniform1i(ssPartsBlendType, 0);
 		glUniform1i(ssSelectorLocation, 0);
 		glUniform1f(ssAlphaLocation, 1.0f);
 		glUniform1i(sshasPremultipliedAlpha, 0);
@@ -3665,6 +3675,11 @@ bool CustomSprite::isCustomShaderProgramEnabled() const
 void CustomSprite::setColorBlendFunc(int colorBlendFuncNo)
 {
 	_colorBlendFuncNo = colorBlendFuncNo;
+}
+
+void CustomSprite::setPartsBlendFunc(int partsBlendFuncNo)
+{
+	_partsBlendFuncNo = partsBlendFuncNo;
 }
 
 cocos2d::V3F_C4B_T2F_Quad& CustomSprite::getAttributeRef()
@@ -3753,6 +3768,7 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
     }
     
 #if OLDSHADER_USE
+	glUniform1i(ssPartsBlendType, _partsBlendFuncNo);
 	glUniform1i(ssSelectorLocation, _colorBlendFuncNo);
 	glUniform1f(ssAlphaLocation, _opacity);
 	glUniform1i(sshasPremultipliedAlpha, _hasPremultipliedAlpha);
@@ -3781,7 +3797,6 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, kQuadSize, (void*)(offset + diff));
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
     CHECK_GL_ERROR_DEBUG();
 
 
