@@ -3644,6 +3644,7 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 			if (_shaderProgramState == 0)
 			{
 				_shaderProgramState = cocos2d::GLProgramState::create(shaderProgram);
+				_shaderProgramState->retain();
 			}
 			this->setGLProgramState(_shaderProgramState);
 #endif			
@@ -3758,6 +3759,7 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 #else
 
 		cocos2d::GLProgramState* pGLProgramState = getGLProgramState();
+		pGLProgramState->setUniformInt("u_partblend", (int)_partsBlendFuncNo);
 		pGLProgramState->setUniformInt("u_selector", (int)_colorBlendFuncNo);
 		pGLProgramState->setUniformFloat("u_alpha", _opacity);
 		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
