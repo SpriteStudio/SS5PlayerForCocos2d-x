@@ -2701,18 +2701,10 @@ void Player::setFrame(int frameNo, float dt)
 						// 通常ブレンド
 						if (partData->alphaBlendType == BLEND_MIX)
 						{
-							if (opacity < 255)
+							if (!cellRef->texture->hasPremultipliedAlpha())
 							{
-								if (!cellRef->texture->hasPremultipliedAlpha())
-								{
-									blendFunc.src = GL_SRC_ALPHA;
-									blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-								}
-								else
-								{
-									blendFunc.src = GL_ONE;
-									blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-								}
+								blendFunc.src = GL_SRC_ALPHA;
+								blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
 							}
 							else
 							{
@@ -2722,18 +2714,42 @@ void Player::setFrame(int frameNo, float dt)
 						}
 						// 加算ブレンド
 						if (partData->alphaBlendType == BLEND_ADD) {
-							blendFunc.src = GL_SRC_ALPHA;
-							blendFunc.dst = GL_ONE;
+							if (!cellRef->texture->hasPremultipliedAlpha())
+							{
+								blendFunc.src = GL_SRC_ALPHA;
+								blendFunc.dst = GL_ONE;
+							}
+							else
+							{
+								blendFunc.src = GL_ONE;
+								blendFunc.dst = GL_ONE;
+							}
 						}
 						// 乗算ブレンド
 						if (partData->alphaBlendType == BLEND_MUL) {
-							blendFunc.src = GL_DST_COLOR;
-							blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+							if (!cellRef->texture->hasPremultipliedAlpha())
+							{
+								blendFunc.src = GL_ZERO;
+								blendFunc.dst = GL_SRC_COLOR;
+							}
+							else
+							{
+								blendFunc.src = GL_DST_COLOR;
+								blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+							}
 						}
 						// 減算ブレンド
 						if (partData->alphaBlendType == BLEND_SUB) {
-							blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
-							blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
+							if (!cellRef->texture->hasPremultipliedAlpha())
+							{
+								blendFunc.src = GL_ZERO;
+								blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
+							}
+							else
+							{
+								blendFunc.src = GL_ONE_MINUS_SRC_ALPHA;
+								blendFunc.dst = GL_ONE_MINUS_SRC_COLOR;
+							}
 						}
 						/*
 						//除外
@@ -3654,11 +3670,6 @@ void CustomSprite::changeShaderProgram(bool useCustomShaderProgram)
 		{
 			this->setGLProgram(_defaultShaderProgram);
 			_useCustomShaderProgram = false;
-#if OLDSHADER_USE
-#else
-			//ディフォルトシェーダープログラムを設定すると今まで使っていたシェーダプログラムは解放される
-			_shaderProgramState = 0;
-#endif
 		}
 	}
 }

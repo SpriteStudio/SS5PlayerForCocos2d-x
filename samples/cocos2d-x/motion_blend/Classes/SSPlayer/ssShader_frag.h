@@ -28,7 +28,7 @@ void main()                                                           \n\
 	pixel.a *= u_alpha;                                               \n\
 	if((u_partblend==1)||(u_partblend==3))                            \n\
 	{                                                                 \n\
-		pixel.rgb *= pixel.a ;                                        \n\
+		pixel.rgb *= pixel.a;                                         \n\
 	}                                                                 \n\
 	gl_FragColor = pixel;                                             \n\
 }                                                                     \n\
