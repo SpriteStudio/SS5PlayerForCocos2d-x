@@ -9,7 +9,7 @@
 //
 
 /************************************************************
-Cocos2d-X Ver3.11に対応しています。
+Cocos2d-X Ver3.13に対応しています。
 対応するssbpフォーマットはバージョン4です。
 Ss5ConverterのフォーマットバージョンはSpriteStudioSDKを参照してください。
 https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%90%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9
@@ -174,7 +174,7 @@ struct State
 //v1.2.6からカラーブレンド時に使用するカスタムシェーダーを
 //CocosV3系のコマンドリストに登録する形に変更しました。
 //カラーブレンドで動作に問題がある場合はOLDSHADER_USEを1にすると1.2.5までの描画方法に変更できます。
-#define OLDSHADER_USE 1	//旧バージョンのカスタムシェーダーコードを使用する場合は1にする
+#define OLDSHADER_USE 0	//旧バージョンのカスタムシェーダーコードを使用する場合は1にする
 //Windowsでは正常に動作するようだがAndroidではカラーブレンドを使用したアニメーションの解放で問題が発生する様なので1にしておきます。
 
 /**
@@ -305,10 +305,22 @@ public:
 		setStateValue(_state.effectValue_loopflag, state.effectValue_loopflag);
 	}
 
+	//マトリクスの更新フラグを設定する
+	void Set_transformDirty()
+	{
+		/*
+		cocos2d-x Ver3.13.1から
+		void Node::setAdditionalTransform(const Mat4* additionalTransform)の内部で
+		_transformDirtyフラグが立たなくなったので、個別に設定する
+		*/
+		_transformDirty = true;
+	}
+
 
 	// override
 	virtual void draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transform, uint32_t flags);
 	virtual void setOpacity(GLubyte opacity);
+	virtual void setTexture(cocos2d::Texture2D *texture);
 
 	// original functions
 	void changeShaderProgram(bool useCustomShaderProgram);
@@ -428,6 +440,14 @@ public:
 	* @return アニメーションの総フレーム（存在しない場合はアサート）
 	*/
 	int getMaxFrame(std::string ssbpName, std::string animeName);
+
+	/**
+	* 名前が登録されていればtrueを返します
+	*
+	* @param dataKey
+	* @return
+	*/
+	bool isDataKeyExists(const std::string& dataKey);
 
 	/**
 	 * 新たなResourceManagerインスタンスを構築します.

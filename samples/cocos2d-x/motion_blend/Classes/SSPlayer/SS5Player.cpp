@@ -1236,6 +1236,18 @@ int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
 	return(rc);
 }
 
+//ssbpファイルが登録されているかを調べる
+bool ResourceManager::isDataKeyExists(const std::string& dataKey) {
+	// 登録されている名前か判定する
+	std::map<std::string, ResourceSet*>::iterator it = _dataDic.find(dataKey);
+	if (it != _dataDic.end()) {
+		//登録されている
+		return true;
+	}
+
+	return false;
+}
+
 
 /**
 * SS5Manager
@@ -3246,6 +3258,7 @@ void Player::setFrame(int frameNo, float dt)
 
 			// 行列を再計算させる
 			sprite->setAdditionalTransform(nullptr);
+			sprite->Set_transformDirty();	//Ver 3.13.1対応
 		}
 	}
 	if (_isPlayFirstUpdate == false)
@@ -3736,8 +3749,8 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	using namespace cocos2d;
 
 
-    CC_PROFILER_START_CATEGORY(kCCProfilerCategorySprite, "CustomSprite - draw");
-	
+	CC_PROFILER_START_CATEGORY(kCCProfilerCategorySprite, "CustomSprite - draw");
+
 	if (!_useCustomShaderProgram)
 	{
 		cocos2d::Sprite::draw(renderer, transform, flags);
@@ -3750,36 +3763,36 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	//自前のシェーダーをcocos側に渡してパラメータを設定することが難しい。
 	//カラーブレンドスプライトは表示タイミングで、現在レンダーにたまっている描画コマンドを処理して
 	//描画してしまい直接描画することで描画順を保つことにした
-	renderer->render();	
+	renderer->render();
 
-//    CCASSERT(!m_pobBatchNode, "If CCSprite is being rendered by CCSpriteBatchNode, CCSprite#draw SHOULD NOT be called");
+	//    CCASSERT(!m_pobBatchNode, "If CCSprite is being rendered by CCSpriteBatchNode, CCSprite#draw SHOULD NOT be called");
 
-    CC_NODE_DRAW_SETUP();
+	CC_NODE_DRAW_SETUP();
 
 	GL::blendFunc(_blendFunc.src, _blendFunc.dst);
 
 	if (_texture != nullptr)
-    {
+	{
 		GL::bindTexture2D(_texture->getName());
-    }
+	}
 #endif
-    else
-    {
+	else
+	{
 #if OLDSHADER_USE
-		GL::bindTexture2D(0);
+		GL::bindTexture2D((GLuint)0);
 #else
 
 		cocos2d::GLProgramState* pGLProgramState = getGLProgramState();
 		pGLProgramState->setUniformInt("u_partblend", (int)_partsBlendFuncNo);
 		pGLProgramState->setUniformInt("u_selector", (int)_colorBlendFuncNo);
 		pGLProgramState->setUniformFloat("u_alpha", _opacity);
-//		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", (int)_hasPremultipliedAlpha);
+//		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
 		pGLProgramState->setUniformTexture("u_texture", this->getTexture());
 
 		cocos2d::Sprite::draw(renderer, transform, flags);
 #endif
-    }
-    
+	}
+
 #if OLDSHADER_USE
 	glUniform1i(ssPartsBlendType, _partsBlendFuncNo);
 	glUniform1i(ssSelectorLocation, _colorBlendFuncNo);
@@ -3787,9 +3800,9 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 	glUniform1i(sshasPremultipliedAlpha, _hasPremultipliedAlpha);
 
 
-    //
-    // Attributes
-    //
+	//
+	// Attributes
+	//
 
 	GL::enableVertexAttribs(GL::VERTEX_ATTRIB_FLAG_POS_COLOR_TEX);
 
@@ -3797,20 +3810,20 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 #define kQuadSize sizeof(_quad.bl)
 	long offset = (long)&_quad;
 
-    // vertex
-    int diff = offsetof( V3F_C4B_T2F, vertices);
+	// vertex
+	int diff = offsetof(V3F_C4B_T2F, vertices);
 	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
 
-    // texCoods
-    diff = offsetof( V3F_C4B_T2F, texCoords);
+	// texCoods
+	diff = offsetof(V3F_C4B_T2F, texCoords);
 	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_TEX_COORD, 2, GL_FLOAT, GL_FALSE, kQuadSize, (void*)(offset + diff));
 
-    // color
-    diff = offsetof( V3F_C4B_T2F, colors);
+	// color
+	diff = offsetof(V3F_C4B_T2F, colors);
 	glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, kQuadSize, (void*)(offset + diff));
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    CHECK_GL_ERROR_DEBUG();
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	CHECK_GL_ERROR_DEBUG();
 
 //	CCLOG("x: %f, y: %f", _quad.tl.vertices.x, _quad.tl.vertices.y);
 
@@ -3846,7 +3859,57 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 }
 #endif
 
+/*
+cocos2d-x ver3.13.1からsetTextureでsetGLProgramStateが呼ばれるようになったため、
+カラーブレンド用のカスタムシェーダーが初期化されてりまう。
+そのためsetTextureをオーバーライドする事にした
+*/
+static unsigned char cc_2x2_white_image[] = {
+	// RGBA8888
+	0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF
+};
+#define CC_2x2_WHITE_IMAGE_KEY  "/cc_2x2_white_image"
+void CustomSprite::setTexture(cocos2d::Texture2D* texture)
+{
+	if (_glProgramState == nullptr)
+	{
+		this->setGLProgramState(cocos2d::GLProgramState::getOrCreateWithGLProgramName(cocos2d::GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR_NO_MVP, texture));
+	}
 
+	// If batchnode, then texture id should be the same
+	CCASSERT(!_batchNode || (texture &&  texture->getName() == _batchNode->getTexture()->getName()), "CCSprite: Batched sprites should use the same texture as the batchnode");
+	// accept texture==nil as argument
+	CCASSERT(!texture || dynamic_cast<cocos2d::Texture2D*>(texture), "setTexture expects a Texture2D. Invalid argument");
+
+	if (texture == nullptr)
+	{
+		// Gets the texture by key firstly.
+		texture = _director->getTextureCache()->getTextureForKey(CC_2x2_WHITE_IMAGE_KEY);
+
+		// If texture wasn't in cache, create it from RAW data.
+		if (texture == nullptr)
+		{
+			cocos2d::Image* image = new (std::nothrow) cocos2d::Image();
+			bool isOK = image->initWithRawData(cc_2x2_white_image, sizeof(cc_2x2_white_image), 2, 2, 8);
+			CC_UNUSED_PARAM(isOK);
+			CCASSERT(isOK, "The 2x2 empty texture was created unsuccessfully.");
+
+			texture = _director->getTextureCache()->addImage(image, CC_2x2_WHITE_IMAGE_KEY);
+			CC_SAFE_RELEASE(image);
+		}
+	}
+
+	if (!_batchNode && _texture != texture)
+	{
+		CC_SAFE_RETAIN(texture);
+		CC_SAFE_RELEASE(_texture);
+		_texture = texture;
+		updateBlendFunc();
+	}
+}
 
 
 /**
