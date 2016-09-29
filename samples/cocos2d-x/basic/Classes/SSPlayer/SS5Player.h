@@ -9,7 +9,7 @@
 //
 
 /************************************************************
-Cocos2d-X Ver3.10に対応しています。
+Cocos2d-X Ver3.11に対応しています。
 対応するssbpフォーマットはバージョン4です。
 Ss5ConverterのフォーマットバージョンはSpriteStudioSDKを参照してください。
 https://github.com/SpriteStudio/SpriteStudio5-SDK/wiki/%E3%82%B3%E3%83%B3%E3%83%90%E3%83%BC%E3%82%BF%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9

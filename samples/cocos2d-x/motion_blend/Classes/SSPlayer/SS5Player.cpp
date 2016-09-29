@@ -3773,7 +3773,7 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 		pGLProgramState->setUniformInt("u_partblend", (int)_partsBlendFuncNo);
 		pGLProgramState->setUniformInt("u_selector", (int)_colorBlendFuncNo);
 		pGLProgramState->setUniformFloat("u_alpha", _opacity);
-		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
+//		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", (int)_hasPremultipliedAlpha);
 		pGLProgramState->setUniformTexture("u_texture", this->getTexture());
 
 		cocos2d::Sprite::draw(renderer, transform, flags);
@@ -3812,25 +3812,31 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     CHECK_GL_ERROR_DEBUG();
 
+//	CCLOG("x: %f, y: %f", _quad.tl.vertices.x, _quad.tl.vertices.y);
 
-#if CC_SPRITE_DEBUG_DRAW == 1
-    // draw bounding box
-    Cocos2d_Point vertices[4]={
-        Cocos2d_Point(m_sQuad.tl.vertices.x,m_sQuad.tl.vertices.y),
-        Cocos2d_Point(m_sQuad.bl.vertices.x,m_sQuad.bl.vertices.y),
-        Cocos2d_Point(m_sQuad.br.vertices.x,m_sQuad.br.vertices.y),
-        Cocos2d_Point(m_sQuad.tr.vertices.x,m_sQuad.tr.vertices.y),
-    };
-    ccDrawPoly(vertices, 4, true);
-#elif CC_SPRITE_DEBUG_DRAW == 2
-    // draw texture box
-    Cocos2d_Size s = this->getTextureRect().size;
-    Cocos2d_Point offsetPix = this->getOffsetPosition();
-    Cocos2d_Point vertices[4] = {
-        Cocos2d_Point(offsetPix.x,offsetPix.y), Cocos2d_Point(offsetPix.x+s.width,offsetPix.y),
-        Cocos2d_Point(offsetPix.x+s.width,offsetPix.y+s.height), Cocos2d_Point(offsetPix.x,offsetPix.y+s.height)
-    };
-    ccDrawPoly(vertices, 4, true);
+#define DRAW_DEBUG 0
+#if DRAW_DEBUG == 1
+	// draw bounding box
+	{
+		cocos2d::Point vertices[4] = {
+			cocos2d::Point(_quad.tl.vertices.x,_quad.tl.vertices.y),
+			cocos2d::Point(_quad.bl.vertices.x,_quad.bl.vertices.y),
+			cocos2d::Point(_quad.br.vertices.x,_quad.br.vertices.y),
+			cocos2d::Point(_quad.tr.vertices.x,_quad.tr.vertices.y),
+		};
+		ccDrawPoly(vertices, 4, true);
+	}
+#elif DRAW_DEBUG == 2
+	// draw texture box
+	{
+		cocos2d::Size s = this->getTextureRect().size;
+		cocos2d::Point offsetPix = this->getOffsetPosition();
+		cocos2d::Point vertices[4] = {
+			cocos2d::Point(offsetPix.x,offsetPix.y), cocos2d::Point(offsetPix.x + s.width,offsetPix.y),
+			cocos2d::Point(offsetPix.x + s.width,offsetPix.y + s.height), cocos2d::Point(offsetPix.x,offsetPix.y + s.height)
+		};
+		ccDrawPoly(vertices, 4, true);
+	}
 #endif // CC_SPRITE_DEBUG_DRAW
 
     CC_INCREMENT_GL_DRAWS(1);

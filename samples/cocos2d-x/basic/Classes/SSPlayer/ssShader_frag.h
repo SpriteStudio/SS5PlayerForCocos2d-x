@@ -9,7 +9,7 @@ uniform sampler2D u_texture;                                          \n\
 uniform int u_selector;                                               \n\
 uniform int u_partblend;                                              \n\
 uniform float u_alpha;                                                \n\
-uniform int u_hasPremultipliedAlpha;                                  \n\
+//uniform int u_hasPremultipliedAlpha;                                  \n\
                                                                       \n\
 void main()                                                           \n\
 {                                                                     \n\
