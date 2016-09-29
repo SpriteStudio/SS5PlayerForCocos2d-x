@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.3.2
+// SS5Player For Cocos2d-x v1.3.3
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -174,7 +174,7 @@ struct State
 //v1.2.6からカラーブレンド時に使用するカスタムシェーダーを
 //CocosV3系のコマンドリストに登録する形に変更しました。
 //カラーブレンドで動作に問題がある場合はOLDSHADER_USEを1にすると1.2.5までの描画方法に変更できます。
-#define OLDSHADER_USE 0	//旧バージョンのカスタムシェーダーコードを使用する場合は1にする
+#define OLDSHADER_USE 1	//旧バージョンのカスタムシェーダーコードを使用する場合は1にする
 //Windowsでは正常に動作するようだがAndroidではカラーブレンドを使用したアニメーションの解放で問題が発生する様なので1にしておきます。
 
 /**
