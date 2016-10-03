@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------
-// SS5Player For Cocos2d-x v1.3.2
+// SS5Player For Cocos2d-x v1.3.4
 //
 // Copyright(C) Web Technology Corp.
 // http://www.webtech.co.jp/
@@ -426,6 +426,14 @@ public:
 	* @return アニメーションの総フレーム（存在しない場合はアサート）
 	*/
 	int getMaxFrame(std::string ssbpName, std::string animeName);
+
+	/**
+	* 名前が登録されていればtrueを返します
+	*
+	* @param dataKey
+	* @return
+	*/
+	bool isDataKeyExists(const std::string& dataKey);
 
 	/**
 	 * 新たなResourceManagerインスタンスを構築します.

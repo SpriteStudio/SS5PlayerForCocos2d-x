@@ -1269,6 +1269,17 @@ int ResourceManager::getMaxFrame(std::string ssbpName, std::string animeName)
 	return(rc);
 }
 
+//ssbpファイルが登録されているかを調べる
+bool ResourceManager::isDataKeyExists(const std::string& dataKey) {
+	// 登録されている名前か判定する
+	std::map<std::string, ResourceSet*>::iterator it = _dataDic.find(dataKey);
+	if (it != _dataDic.end()) {
+		//登録されている
+		return true;
+	}
+
+	return false;
+}
 
 /**
 * SS5Manager
