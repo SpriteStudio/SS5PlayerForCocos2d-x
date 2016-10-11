@@ -3786,7 +3786,7 @@ void CustomSprite::draw(cocos2d::Renderer *renderer, const cocos2d::Mat4 &transf
 		pGLProgramState->setUniformInt("u_partblend", (int)_partsBlendFuncNo);
 		pGLProgramState->setUniformInt("u_selector", (int)_colorBlendFuncNo);
 		pGLProgramState->setUniformFloat("u_alpha", _opacity);
-		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
+//		pGLProgramState->setUniformInt("u_hasPremultipliedAlpha", _hasPremultipliedAlpha);
 		pGLProgramState->setUniformTexture("u_texture", this->getTexture());
 
 		cocos2d::Sprite::draw(renderer, transform, flags);
