@@ -14,7 +14,10 @@ uniform float u_alpha;                                                \n\
 void main()                                                           \n\
 {                                                                     \n\
 	vec4 pixel = texture2D(u_texture, v_texCoord);                    \n\
-	pixel.r = pixel.r / pixel.a;                                      \n\
+    if(pixel.a == 0.0)                                                \n\
+    {                                                                 \n\
+        discard;                                                      \n\
+    }                                                                 \n\	pixel.r = pixel.r / pixel.a;                                      \n\
 	pixel.g = pixel.g / pixel.a;                                      \n\
 	pixel.b = pixel.b / pixel.a;                                      \n\
                                                                       \n\
